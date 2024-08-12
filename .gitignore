@@ -1,0 +1,25 @@
+# Build Folders
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Visual Studio files
+.vscode/
+.vs/
+
+# Database
+*.mdf
+*.ldf
+*.ndf
+
+# Others
+*.pdb
+*.cache
+*.config
+api/Controllers/WeatherForecastController.cs
