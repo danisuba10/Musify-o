@@ -13,7 +13,7 @@ namespace Application.Albums
     {
         public class Query : IRequest<Album>
         {
-            public int id { get; set; }
+            public int Id { get; set; }
         }
 
         public class Handler : IRequestHandler<Query, Album>
@@ -29,11 +29,11 @@ namespace Application.Albums
             {
                 var album = await _context.Albums
                     .Include(a => a.Songs)
-                    .FirstOrDefaultAsync(a => a.Id == request.id, cancellationToken);
+                    .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken);
 
                 if (album == null)
                 {
-                    throw new Exception($"Album with ID {request.id} not found");
+                    throw new Exception($"Album with ID {request.Id} not found");
                 }
 
                 return album;
