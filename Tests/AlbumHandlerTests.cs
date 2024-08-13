@@ -90,5 +90,8 @@ namespace Tests
             //Assert
             Assert.Equal(4, result.Count);
         }
+
+        [Fact]
+        public async Task Remove
     }
 }
