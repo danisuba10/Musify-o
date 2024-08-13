@@ -13,6 +13,7 @@ namespace Persistence
         public DbSet<Album> Albums { get; set; }
         public DbSet<Artist> Artists { get; set; }
         public DbSet<SongArtistRelation> SongArtistRelations { get; set; }
+        public DbSet<AlbumArtistRelation> AlbumArtistRelations { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
@@ -58,6 +59,19 @@ namespace Persistence
                 .WithMany(artist => artist.SongArtistRelations)
                 .HasForeignKey(sar => sar.ArtistId);
 
+            modelBuilder.Entity<AlbumArtistRelation>()
+                .HasKey(aar => new { aar.AlbumId, aar.ArtistId });
+
+            modelBuilder.Entity<AlbumArtistRelation>()
+                .HasOne(aar => aar.Album)
+                .WithMany(album => album.AlbumArtistRelations)
+                .HasForeignKey(aar => aar.AlbumId);
+
+            modelBuilder.Entity<AlbumArtistRelation>()
+                .HasOne(aar => aar.Artist)
+                .WithMany(artist => artist.AlbumArtistRelations)
+                .HasForeignKey(aar => aar.ArtistId);
+
             modelBuilder.Entity<Album>().HasData(
                 new Album { Id = 1, Name = "First Album", ImageLocation = "path/to/image1" },
                 new Album { Id = 2, Name = "Second Album", ImageLocation = "path/to/image2" }
@@ -78,6 +92,12 @@ namespace Persistence
                 new SongArtistRelation { SongId = 1, ArtistId = 1 },
                 new SongArtistRelation { SongId = 2, ArtistId = 1 },
                 new SongArtistRelation { SongId = 3, ArtistId = 2 }
+            );
+
+            modelBuilder.Entity<AlbumArtistRelation>().HasData(
+                new AlbumArtistRelation { AlbumId = 1, ArtistId = 1 },
+                new AlbumArtistRelation { AlbumId = 1, ArtistId = 2 },
+                new AlbumArtistRelation { AlbumId = 2, ArtistId = 2 }
             );
         }
     }
