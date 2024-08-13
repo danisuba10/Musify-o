@@ -15,5 +15,6 @@ namespace Domain
         [Required]
         public string ImageLocation { get; set; } = string.Empty;
         public ICollection<Song> Songs { get; set; } = new List<Song>();
+        public ICollection<AlbumArtistRelation> AlbumArtistRelations { get; set; } = new List<AlbumArtistRelation>();
     }
 }
