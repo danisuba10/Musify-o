@@ -44,7 +44,8 @@ namespace Persistence
                 .HasOne(song => song.Album)
                 .WithMany(album => album.Songs)
                 .HasForeignKey(s => s.AlbumId)
-                .OnDelete(DeleteBehavior.Restrict);
+                //If related foreign key album is deleted, song should also be deleted.
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<SongArtistRelation>()
                 .HasKey(sar => new { sar.SongId, sar.ArtistId });
