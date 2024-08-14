@@ -10,6 +10,8 @@ using Application.Albums;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Application;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
+using System.Diagnostics;
 
 namespace Tests
 {
@@ -98,6 +100,11 @@ namespace Tests
             //Arrange
             var albums = _context.Albums;
             _context.Albums.RemoveRange(albums);
+
+            var songsToRemove = _context.Songs;
+            _context.Songs.RemoveRange(songsToRemove);
+            await _context.SaveChangesAsync();
+
             await _context.SaveChangesAsync();
             List<Album> NewAlbums = new List<Album>
             {
@@ -138,6 +145,56 @@ namespace Tests
             Assert.Equal(3, AlbumsAfterDelete.Count());
             var SongsAfterDelete = _context.Songs;
             Assert.Equal(3, SongsAfterDelete.Count());
+        }
+
+        [Fact]
+        public async Task AddSongsToAlbum_ShouldAddSongsToAlbum()
+        {
+            //Arrange
+            var albums = _context.Albums;
+            _context.Albums.RemoveRange(albums);
+
+            var songsToRemove = _context.Songs;
+            _context.Songs.RemoveRange(songsToRemove);
+
+            List<Album> NewAlbums = new List<Album>
+            {
+                new Album {Name = "Follow the leader", ImageLocation = "path/1"},
+                new Album {Name = "Surrealistic pillow", ImageLocation = "path/2"},
+                new Album {Name = "Reggatta De Blanc", ImageLocation = "path/3"},
+                new Album {Name = "Rosenrot", ImageLocation = "path/4"}
+            };
+            _context.Albums.AddRange(NewAlbums);
+
+            List<Song> NewSongs = new List<Song>
+            {
+                new Song{Title = "Freak On a Leash", Duration = TimeSpan.FromSeconds(256)},
+                new Song{Title = "Got The Life", Duration = TimeSpan.FromSeconds(248)},
+                new Song{Title = "White Rabbit", Duration = TimeSpan.FromSeconds(151)},
+                new Song{Title = "Message In A Bottle", Duration = TimeSpan.FromSeconds(290)},
+                new Song{Title = "Rosenrot", Duration = TimeSpan.FromSeconds(235)}
+            };
+
+            await _context.SaveChangesAsync();
+
+            //Act
+            var handler = new AddSongsToAlbum.Handler(_context);
+            var query = new AddSongsToAlbum.Query() { AlbumId = NewAlbums[0].Id, Songs = NewSongs };
+            try
+            {
+                await handler.Handle(query, CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+
+            //Assert
+            var CheckAlbum = await _context.Albums.FirstOrDefaultAsync(a => a.Id == NewAlbums[0].Id);
+            if (CheckAlbum != null)
+            {
+                Assert.Equal(5, CheckAlbum.Songs.Count());
+            }
         }
     }
 }
