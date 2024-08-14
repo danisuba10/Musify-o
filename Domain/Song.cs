@@ -15,7 +15,7 @@ namespace Domain
         [Required]
         public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(0);
         public int? AlbumId { get; set; } = null;
-        public Album? Album { get; set; } = null;
+        public Album Album { get; set; } = null!;
         public int PositionInAlbum { get; set; } = -1;
         public ICollection<SongArtistRelation> SongArtistRelations { get; set; } = new List<SongArtistRelation>();
 
