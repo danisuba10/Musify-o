@@ -29,6 +29,8 @@ namespace Application.Albums
             {
                 var album = await _context.Albums
                     .Include(a => a.Songs)
+                    .Include(a => a.AlbumArtistRelations)
+                        .ThenInclude(aar => aar.Artist)
                     .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken);
 
                 if (album == null)
