@@ -1,1 +1,1 @@
-Music player database.
+Music player backend.
