@@ -11,22 +11,20 @@ using Application.Songs;
 
 namespace Application.Albums
 {
-    public class AddSongToAlbum
+    public class AddSongsToAlbum
     {
         public class Query : IRequest
         {
             public int AlbumId { get; set; }
-            public List<int> SongIds { get; set; } = [];
+            public List<Song> Songs { get; set; } = [];
         }
 
         public class Handler : IRequestHandler<Query>
         {
             private readonly ApplicationDbContext _context;
-            private readonly IMediator _mediator;
-            public Handler(ApplicationDbContext context, IMediator mediator)
+            public Handler(ApplicationDbContext context)
             {
                 _context = context;
-                _mediator = mediator;
             }
             public async Task<Unit> Handle(Query query, CancellationToken cancellationToken)
             {
@@ -39,11 +37,13 @@ namespace Application.Albums
                     throw new Exception("Album does not exist!");
                 }
 
-                foreach (int SongID in query.SongIds)
+                foreach (Song Song in query.Songs)
                 {
-                    var song = await _mediator.Send(new GetSongByID.Query() { Id = SongID }, cancellationToken);
-                    Album.Songs.Add(song);
+                    Album.Songs.Add(Song);
                 }
+
+                _context.Albums.Update(Album);
+                await _context.SaveChangesAsync();
 
                 return Unit.Value;
             }
