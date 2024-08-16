@@ -26,6 +26,18 @@ namespace Persistence
             modelBuilder.Entity<Artist>().ToTable("Artists");
 
             modelBuilder.Entity<Song>()
+                .Property(s => s.Id)
+                .HasDefaultValueSql("'UUID()'");
+
+            modelBuilder.Entity<Album>()
+                .Property(a => a.Id)
+                .HasDefaultValueSql("'UUID()'");
+
+            modelBuilder.Entity<Artist>()
+                .Property(art => art.Id)
+                .HasDefaultValueSql("'UUID()'");
+
+            modelBuilder.Entity<Song>()
                 .ToTable("Songs")
                 .HasIndex(song => song.Title)
                 .HasDatabaseName("IX_Song_Title");
@@ -98,32 +110,50 @@ namespace Persistence
                 .WithMany(artist => artist.AlbumArtistRelations)
                 .HasForeignKey(aar => aar.ArtistId);
 
+            // GUIDs for Albums
+            var album1Id = Guid.NewGuid();
+            var album2Id = Guid.NewGuid();
+
+            // GUIDs for Artists
+            var artist1Id = Guid.NewGuid();
+            var artist2Id = Guid.NewGuid();
+
+            // GUIDs for Songs
+            var song1Id = Guid.NewGuid();
+            var song2Id = Guid.NewGuid();
+            var song3Id = Guid.NewGuid();
+
+            // Seed Data for Albums
             modelBuilder.Entity<Album>().HasData(
-                new Album { Id = 1, Name = "First Album", ImageLocation = "path/to/image1" },
-                new Album { Id = 2, Name = "Second Album", ImageLocation = "path/to/image2" }
+                new Album { Id = album1Id, Name = "First Album", ImageLocation = "path/to/image1" },
+                new Album { Id = album2Id, Name = "Second Album", ImageLocation = "path/to/image2" }
             );
 
+            // Seed Data for Artists
             modelBuilder.Entity<Artist>().HasData(
-                new Artist { Id = 1, Name = "First Artist", ImageLocation = "path/to/image1" },
-                new Artist { Id = 2, Name = "Second Artist", ImageLocation = "path/to/image2" }
+                new Artist { Id = artist1Id, Name = "First Artist", ImageLocation = "path/to/image1" },
+                new Artist { Id = artist2Id, Name = "Second Artist", ImageLocation = "path/to/image2" }
             );
 
+            // Seed Data for Songs
             modelBuilder.Entity<Song>().HasData(
-                new Song { Id = 1, Title = "First Song", Duration = new TimeSpan(0, 3, 45), AlbumId = 1 },
-                new Song { Id = 2, Title = "Second Song", Duration = new TimeSpan(0, 4, 20), AlbumId = 1 },
-                new Song { Id = 3, Title = "Third Song", Duration = new TimeSpan(0, 5, 0), AlbumId = 2 }
+                new Song { Id = song1Id, Title = "First Song", Duration = new TimeSpan(0, 3, 45), AlbumId = album1Id },
+                new Song { Id = song2Id, Title = "Second Song", Duration = new TimeSpan(0, 4, 20), AlbumId = album1Id },
+                new Song { Id = song3Id, Title = "Third Song", Duration = new TimeSpan(0, 5, 0), AlbumId = album2Id }
             );
 
+            // Seed Data for SongArtistRelation
             modelBuilder.Entity<SongArtistRelation>().HasData(
-                new SongArtistRelation { SongId = 1, ArtistId = 1 },
-                new SongArtistRelation { SongId = 2, ArtistId = 1 },
-                new SongArtistRelation { SongId = 3, ArtistId = 2 }
+                new SongArtistRelation { SongId = song1Id, ArtistId = artist1Id },
+                new SongArtistRelation { SongId = song2Id, ArtistId = artist1Id },
+                new SongArtistRelation { SongId = song3Id, ArtistId = artist2Id }
             );
 
+            // Seed Data for AlbumArtistRelation
             modelBuilder.Entity<AlbumArtistRelation>().HasData(
-                new AlbumArtistRelation { AlbumId = 1, ArtistId = 1 },
-                new AlbumArtistRelation { AlbumId = 1, ArtistId = 2 },
-                new AlbumArtistRelation { AlbumId = 2, ArtistId = 2 }
+                new AlbumArtistRelation { AlbumId = album1Id, ArtistId = artist1Id },
+                new AlbumArtistRelation { AlbumId = album1Id, ArtistId = artist2Id },
+                new AlbumArtistRelation { AlbumId = album2Id, ArtistId = artist2Id }
             );
         }
     }
