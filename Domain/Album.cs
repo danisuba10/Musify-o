@@ -8,7 +8,7 @@ namespace Domain
 {
     public class Album
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         [Required]
         [StringLength(256)]
         public string Name { get; set; } = string.Empty;
