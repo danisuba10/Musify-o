@@ -12,6 +12,7 @@ namespace Persistence
         public DbSet<Song> Songs { get; set; }
         public DbSet<Album> Albums { get; set; }
         public DbSet<Artist> Artists { get; set; }
+        public DbSet<User> Users { get; set; }
         public DbSet<SongArtistRelation> SongArtistRelations { get; set; }
         public DbSet<AlbumArtistRelation> AlbumArtistRelations { get; set; }
 
@@ -34,6 +35,10 @@ namespace Persistence
                 .HasDefaultValueSql("'UUID()'");
 
             modelBuilder.Entity<Artist>()
+                .Property(art => art.Id)
+                .HasDefaultValueSql("'UUID()'");
+
+            modelBuilder.Entity<User>()
                 .Property(art => art.Id)
                 .HasDefaultValueSql("'UUID()'");
 
