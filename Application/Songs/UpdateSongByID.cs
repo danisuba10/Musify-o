@@ -14,7 +14,7 @@ namespace Application.Songs
     {
         public class Command : IRequest
         {
-            public int Id { get; set; }
+            public Guid Id { get; set; }
             public Song Song { get; set; } = new Song();
         }
 

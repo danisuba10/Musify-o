@@ -14,7 +14,7 @@ namespace Application.Artists
     {
         public class Command : IRequest
         {
-            public int Id { get; set; }
+            public Guid Id { get; set; }
             public required Artist Artist { get; set; }
         }
 

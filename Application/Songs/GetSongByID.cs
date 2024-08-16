@@ -13,7 +13,7 @@ namespace Application.Songs
     {
         public class Query : IRequest<Song>
         {
-            public int Id { get; set; }
+            public Guid Id { get; set; }
         }
 
         public class Handler : IRequestHandler<Query, Song>
