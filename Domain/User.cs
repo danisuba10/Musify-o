@@ -11,11 +11,6 @@ namespace Domain
         public required string UserName { get; set; }
         public string? PasswordHash { get; set; }
         public string Role { get; set; } = "User";
-        private string? _displayName;
-        public string DisplayName
-        {
-            get => _displayName ?? UserName;
-            set => _displayName = value;
-        }
+        public string DisplayName { get; set; } = String.Empty;
     }
 }
