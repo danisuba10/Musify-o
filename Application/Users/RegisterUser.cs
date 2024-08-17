@@ -31,8 +31,8 @@ namespace Application.Users
             }
             public async Task<Unit> Handle(Command command, CancellationToken cancellationToken)
             {
-                //TODO: Check if UserName already exists!
                 var ExistingUser = await _mediator.Send(new GetUserByUserName.Query { UserName = command.UserName });
+
                 if (ExistingUser != null)
                 {
                     throw new Exception("User already exists!");
