@@ -6,6 +6,7 @@ using MediatR;
 using Persistence;
 using Microsoft.AspNetCore.Identity;
 using Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Users
 {
@@ -30,14 +31,14 @@ namespace Application.Users
             }
             public async Task<bool> Handle(Command command, CancellationToken cancellationToken)
             {
-                var user = await _mediator.Send(new GetUserByUserName.Query { UserName = command.UserName });
+                var ExistingUser = await _mediator.Send(new GetUserByUserName.Query { UserName = command.UserName });
 
-                if (user == null)
+                if (ExistingUser == null)
                 {
                     throw new Exception("User does not exist!");
                 }
 
-                var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, command.Password);
+                var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(ExistingUser, ExistingUser.PasswordHash, command.Password);
 
                 if (passwordVerificationResult == PasswordVerificationResult.Failed)
                 {
