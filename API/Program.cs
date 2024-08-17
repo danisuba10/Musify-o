@@ -25,7 +25,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseMySql(
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
-//builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddMediatR(typeof(AddAlbum.Handler).Assembly);
 builder.Services.AddMediatR(typeof(AddSongsToAlbum.Handler).Assembly);
 builder.Services.AddMediatR(typeof(GetAllAlbums.Handler).Assembly);
@@ -55,6 +54,7 @@ builder.Services.AddAutoMapper(typeof(AlbumMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(SongMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(ArtistMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(UserMappingProfile).Assembly);
+
 
 var app = builder.Build();
 
