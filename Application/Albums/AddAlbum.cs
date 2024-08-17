@@ -28,7 +28,7 @@ namespace Application.Albums
             public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
             {
                 await _context.Albums.AddAsync(request.Album);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
                 return Unit.Value;
             }
         }
