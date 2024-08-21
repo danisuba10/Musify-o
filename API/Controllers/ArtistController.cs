@@ -22,5 +22,19 @@ namespace API.Controllers
 
             return Ok(new ArtistDTO { Name = artist.Name, ImgLocation = artist.ImageLocation });
         }
+
+        [HttpGet("GetArtistID")]
+        public async Task<IActionResult> GetArtistID(string name, CancellationToken cancellationToken)
+        {
+            var artist = await Mediator.Send(new GetArtistByName.Query { Name = name }, cancellationToken);
+            if (artist != null)
+            {
+                return Ok(artist.Id);
+            }
+            else
+            {
+                return BadRequest("Artist does not exist!");
+            }
+        }
     }
 }
