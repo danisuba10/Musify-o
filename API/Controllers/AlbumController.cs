@@ -51,6 +51,7 @@ namespace API.Controllers
             };
             Album.ImageLocation = "albums/" + Album.Id;
 
+            List<String> ArtistsString = new List<String>();
             foreach (var ArtistDTO in albumDto.Artists)
             {
 
@@ -63,7 +64,15 @@ namespace API.Controllers
                         Artist = Artist
                     }
                     );
+                ArtistsString.Add(Artist.Name);
+            }
 
+            var ExistingAlbum = await Mediator.Send(
+                new GetAlbum.Query { Name = Album.Name, Artists = ArtistsString, AllArtistsPresent = true });
+
+            if (ExistingAlbum != null)
+            {
+                return BadRequest("Album is already added!");
             }
 
             foreach (var SongDTO in albumDto.Songs)
