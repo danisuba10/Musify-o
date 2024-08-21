@@ -7,6 +7,7 @@ namespace Application.DataTransferObjects
 {
     public class SongDTO
     {
+        public Guid? Guid { get; set; }
         public string Title { get; set; } = string.Empty;
         public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(0);
         public int PositionInAlbum { get; set; } = -1;
