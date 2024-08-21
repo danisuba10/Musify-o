@@ -23,9 +23,20 @@ namespace API.Controllers
 
                 if (Artist == null)
                 {
+                    Guid ArtistID;
+
+                    if (artistDTO.Guid != null)
+                    {
+                        ArtistID = (Guid)artistDTO.Guid;
+                    }
+                    else
+                    {
+                        ArtistID = Guid.NewGuid();
+                    }
+
                     Artist = new Artist()
                     {
-                        Id = Guid.NewGuid(),
+                        Id = ArtistID,
                         Name = artistDTO.Name
                     };
                     Artist.ImageLocation = "artists/" + Artist.Id;
@@ -42,9 +53,18 @@ namespace API.Controllers
         {
             HashSet<Artist> UsedArtists = new HashSet<Artist>();
 
+            Guid AlbumID;
+            if (albumDto.Guid != null)
+            {
+                AlbumID = (Guid)albumDto.Guid;
+            }
+            else
+            {
+                AlbumID = Guid.NewGuid();
+            }
             var Album = new Album
             {
-                Id = Guid.NewGuid(),
+                Id = AlbumID,
                 Name = albumDto.Name,
                 Songs = new HashSet<Song>(),
                 AlbumArtistRelations = new List<AlbumArtistRelation>()
@@ -77,9 +97,18 @@ namespace API.Controllers
 
             foreach (var SongDTO in albumDto.Songs)
             {
+                Guid SongID;
+                if (SongDTO.Guid != null)
+                {
+                    SongID = (Guid)SongDTO.Guid;
+                }
+                else
+                {
+                    SongID = Guid.NewGuid();
+                }
                 var Song = new Song()
                 {
-                    Id = Guid.NewGuid(),
+                    Id = SongID,
                     Title = SongDTO.Title,
                     Duration = SongDTO.Duration,
                     PositionInAlbum = SongDTO.PositionInAlbum,
@@ -105,6 +134,20 @@ namespace API.Controllers
             await Mediator.Send(new AddAlbum.Command { Album = Album });
 
             return Ok(Album);
+        }
+
+        [HttpGet("GetAlbumID")]
+        public async Task<IActionResult> GetAlbumId(string name, CancellationToken cancellationToken)
+        {
+            var album = await Mediator.Send(new GetAlbum.Query { Name = name });
+            if (album != null)
+            {
+                return Ok(album.Id);
+            }
+            else
+            {
+                return BadRequest("Album does not exist!");
+            }
         }
     }
 }
