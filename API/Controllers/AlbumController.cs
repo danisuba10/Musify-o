@@ -15,11 +15,11 @@ namespace API.Controllers
         private async Task<Artist> GetOrCreateArtist
         (ArtistDTO artistDTO, HashSet<Artist> usedArtists, CancellationToken cancellationToken)
         {
-            var Artist = usedArtists.FirstOrDefault(a => a.Name == artistDTO.Name);
+            var Artist = usedArtists.FirstOrDefault(a => a.Name == artistDTO.ArtistName);
 
             if (Artist == null)
             {
-                Artist = await Mediator.Send(new GetArtist.Query { Name = artistDTO.Name });
+                Artist = await Mediator.Send(new GetArtist.Query { Name = artistDTO.ArtistName });
 
                 if (Artist == null)
                 {
@@ -37,7 +37,7 @@ namespace API.Controllers
                     Artist = new Artist()
                     {
                         Id = ArtistID,
-                        Name = artistDTO.Name
+                        Name = artistDTO.ArtistName
                     };
                     Artist.ImageLocation = "artists/" + Artist.Id;
                 }
@@ -65,7 +65,7 @@ namespace API.Controllers
             var Album = new Album
             {
                 Id = AlbumID,
-                Name = albumDto.Name,
+                Name = albumDto.AlbumName,
                 Songs = new HashSet<Song>(),
                 AlbumArtistRelations = new List<AlbumArtistRelation>()
             };
