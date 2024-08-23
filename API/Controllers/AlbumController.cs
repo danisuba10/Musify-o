@@ -19,15 +19,15 @@ namespace API.Controllers
 
             if (Artist == null)
             {
-                Artist = await Mediator.Send(new GetArtistByName.Query { Name = artistDTO.Name });
+                Artist = await Mediator.Send(new GetArtist.Query { Name = artistDTO.Name });
 
                 if (Artist == null)
                 {
                     Guid ArtistID;
 
-                    if (artistDTO.Guid != null)
+                    if (artistDTO.Id != null)
                     {
-                        ArtistID = (Guid)artistDTO.Guid;
+                        ArtistID = (Guid)artistDTO.Id;
                     }
                     else
                     {
@@ -54,9 +54,9 @@ namespace API.Controllers
             HashSet<Artist> UsedArtists = new HashSet<Artist>();
 
             Guid AlbumID;
-            if (albumDto.Guid != null)
+            if (albumDto.Id != null)
             {
-                AlbumID = (Guid)albumDto.Guid;
+                AlbumID = (Guid)albumDto.Id;
             }
             else
             {
@@ -98,9 +98,9 @@ namespace API.Controllers
             foreach (var SongDTO in albumDto.Songs)
             {
                 Guid SongID;
-                if (SongDTO.Guid != null)
+                if (SongDTO.Id != null)
                 {
-                    SongID = (Guid)SongDTO.Guid;
+                    SongID = (Guid)SongDTO.Id;
                 }
                 else
                 {

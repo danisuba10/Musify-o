@@ -13,20 +13,20 @@ namespace API.Controllers
         [HttpPost("GetArtistByName")]
         public async Task<IActionResult> GetArtistByName(string Name, CancellationToken cancellationToken)
         {
-            var artist = await Mediator.Send(new GetArtistByName.Query { Name = Name });
+            var artist = await Mediator.Send(new GetArtist.Query { Name = Name });
 
             if (artist == null)
             {
                 return NotFound(new { Message = "Artist not found" });
             }
 
-            return Ok(new ArtistDTO { Name = artist.Name, ImgLocation = artist.ImageLocation });
+            return Ok(new ArtistDTO { Name = artist.Name, ImgLocation = artist.ImageLocation, Id = artist.Id });
         }
 
         [HttpGet("GetArtistID")]
         public async Task<IActionResult> GetArtistID(string name, CancellationToken cancellationToken)
         {
-            var artist = await Mediator.Send(new GetArtistByName.Query { Name = name }, cancellationToken);
+            var artist = await Mediator.Send(new GetArtist.Query { Name = name }, cancellationToken);
             if (artist != null)
             {
                 return Ok(artist.Id);
