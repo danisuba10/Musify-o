@@ -7,7 +7,7 @@ namespace Application.DataTransferObjects
 {
     public class AlbumDTO
     {
-        public string Name { get; set; } = string.Empty;
+        public string AlbumName { get; set; } = string.Empty;
         public string? ImageLocation { get; set; } = null;
         public Guid? Id { get; set; }
         public List<SongDTO> Songs { get; set; } = new List<SongDTO>();

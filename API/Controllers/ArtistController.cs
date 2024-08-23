@@ -20,7 +20,7 @@ namespace API.Controllers
                 return NotFound(new { Message = "Artist not found" });
             }
 
-            return Ok(new ArtistDTO { Name = artist.Name, ImgLocation = artist.ImageLocation, Id = artist.Id });
+            return Ok(new ArtistDTO { ArtistName = artist.Name, ImgLocation = artist.ImageLocation, Id = artist.Id });
         }
 
         [HttpGet("GetArtistID")]
