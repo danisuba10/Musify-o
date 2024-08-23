@@ -36,5 +36,19 @@ namespace API.Controllers
                 return BadRequest("Artist does not exist!");
             }
         }
+
+        [HttpGet("GetAllArtistIds")]
+        public async Task<List<Guid>> GetAllArtistIDs()
+        {
+            List<Guid> Ids = new List<Guid>();
+            var artists = await Mediator.Send(new GetAllArtists.Query { });
+
+            foreach (var artist in artists)
+            {
+                Ids.Add(artist.Id);
+            }
+
+            return Ids;
+        }
     }
 }
