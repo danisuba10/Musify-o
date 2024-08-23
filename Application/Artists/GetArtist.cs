@@ -35,12 +35,12 @@ namespace Application.Artists
 
                 if (!String.IsNullOrWhiteSpace(query.Name))
                 {
-                    artistsQuery.Where(a => a.Name == query.Name);
+                    artistsQuery = artistsQuery.Where(a => a.Name == query.Name);
                 }
 
                 if (query.Id != null)
                 {
-                    artistsQuery.Where(a => a.Id == query.Id);
+                    artistsQuery = artistsQuery.Where(a => a.Id == query.Id);
                 }
 
                 var Artist = await artistsQuery.
