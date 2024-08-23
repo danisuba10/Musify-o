@@ -9,7 +9,7 @@ namespace Application.DataTransferObjects
     {
         public string Name { get; set; } = string.Empty;
         public string? ImageLocation { get; set; } = null;
-        public Guid? Guid { get; set; }
+        public Guid? Id { get; set; }
         public List<SongDTO> Songs { get; set; } = new List<SongDTO>();
         public List<ArtistDTO> Artists { get; set; } = new List<ArtistDTO>();
     }
