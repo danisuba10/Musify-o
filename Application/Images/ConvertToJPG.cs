@@ -56,22 +56,20 @@ namespace Application.Images
                 {
                     using (var image = await Image.LoadAsync(inputStream))
                     {
-                        using (var memoryStream = new MemoryStream())
+                        var memoryStream = new MemoryStream();
+                        var Encoder = new JpegEncoder { Quality = 30 };
+
+                        await image.SaveAsJpegAsync(memoryStream, Encoder);
+                        memoryStream.Position = 0;
+
+                        var jpgFile = new FormFile
+                            (memoryStream, 0, memoryStream.Length, file.Name, Path.ChangeExtension(file.FileName, "jpg"))
                         {
-                            var Encoder = new JpegEncoder { Quality = 60 };
+                            Headers = file.Headers,
+                            ContentType = "image/jpeg"
+                        };
 
-                            await image.SaveAsJpegAsync(memoryStream, Encoder);
-                            memoryStream.Position = 0;
-
-                            var jpgFile = new FormFile
-                                (memoryStream, 0, memoryStream.Length, file.Name + "edit", Path.ChangeExtension(file.FileName, "jpg"))
-                            {
-                                Headers = file.Headers,
-                                ContentType = "image/jpeg"
-                            };
-
-                            return jpgFile;
-                        }
+                        return jpgFile;
                     }
                 }
             }
