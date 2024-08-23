@@ -14,6 +14,7 @@ namespace Application.Albums
     {
         public class Query : IRequest<Album?>
         {
+            public Guid? Id { get; set; }
             public string? Name { get; set; } = null;
             public List<String>? Artists { get; set; } = null;
             //Returns related Songs and Artists, not just Album information
@@ -31,12 +32,17 @@ namespace Application.Albums
             }
             public async Task<Album?> Handle(Query query, CancellationToken cancellationToken)
             {
-                if (query.Name == null && query.Artists == null)
+                if (query.Name == null && query.Artists == null && query.Id == null)
                 {
                     return null;
                 }
 
                 IQueryable<Album> albumsQuery = _context.Albums;
+
+                if (query.Id != null)
+                {
+                    albumsQuery = albumsQuery.Where(a => a.Id == query.Id);
+                }
 
                 if (!String.IsNullOrWhiteSpace(query.Name))
                 {
