@@ -7,6 +7,8 @@ using Application.DataTransferObjects;
 using Domain;
 using Application.Albums;
 using Application.Artists;
+using MediatR;
+using Application.Images;
 
 namespace API.Controllers
 {
@@ -143,6 +145,26 @@ namespace API.Controllers
             if (album != null)
             {
                 return Ok(album.Id);
+            }
+            else
+            {
+                return BadRequest("Album does not exist!");
+            }
+        }
+
+        [HttpPost("AddAlbumImage")]
+        public async Task<IActionResult> AddAlbumImage(Guid AlbumID, IFormFile formFile, CancellationToken cancellationToken)
+        {
+            var album = await Mediator.Send(new GetAlbum.Query { Id = AlbumID });
+            if (album != null)
+            {
+                await Mediator.Send(new UploadImage.Command
+                {
+                    formFile = formFile,
+                    Path = Path.Combine(ImageFolderPath, "Albums"),
+                    Name = AlbumID.ToString()
+                });
+                return Ok();
             }
             else
             {
