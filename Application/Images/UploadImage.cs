@@ -14,6 +14,7 @@ namespace Application.Images
         {
             public required IFormFile formFile { get; set; }
             public required string Path { get; set; }
+            public required string Name { get; set; }
         }
 
         public class Handler : IRequestHandler<Command>
@@ -30,12 +31,12 @@ namespace Application.Images
                 var filePath = command.Path;
                 var directoryPath = Path.GetDirectoryName(filePath);
 
-                if (!String.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+                if (!String.IsNullOrEmpty(filePath) && !Directory.Exists(filePath))
                 {
-                    Directory.CreateDirectory(directoryPath);
+                    Directory.CreateDirectory(filePath);
                 }
 
-                using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                using (var fileStream = new FileStream(Path.Combine(filePath, command.Name + ".jpg"), FileMode.Create))
                 {
                     await jpegImage.CopyToAsync(fileStream, cancellationToken);
                 }
