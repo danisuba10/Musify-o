@@ -15,5 +15,6 @@ namespace API.Controllers
         private IConfiguration _config;
         protected IMediator Mediator => _mediator ??= HttpContext.RequestServices.GetService<IMediator>();
         protected IConfiguration Config => _config ??= HttpContext.RequestServices.GetService<IConfiguration>();
+        protected string ImageFolderPath => Path.Combine(Directory.GetCurrentDirectory(), Config["ImageSettings:ImageFolderPath"]);
     }
 }
