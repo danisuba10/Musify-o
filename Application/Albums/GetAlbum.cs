@@ -12,7 +12,7 @@ namespace Application.Albums
 {
     public class GetAlbum
     {
-        public class Query : IRequest<Album?>
+        public class Query : IRequest<List<Album>?>
         {
             public Guid? Id { get; set; }
             public string? Name { get; set; } = null;
@@ -23,14 +23,14 @@ namespace Application.Albums
             public bool AllArtistsPresent { get; set; } = false;
         }
 
-        public class Handler : IRequestHandler<Query, Album?>
+        public class Handler : IRequestHandler<Query, List<Album>?>
         {
             private readonly ApplicationDbContext _context;
             public Handler(ApplicationDbContext context)
             {
                 _context = context;
             }
-            public async Task<Album?> Handle(Query query, CancellationToken cancellationToken)
+            public async Task<List<Album>?> Handle(Query query, CancellationToken cancellationToken)
             {
                 if (query.Name == null && query.Artists == null && query.Id == null)
                 {
@@ -70,22 +70,22 @@ namespace Application.Albums
                     }
                 }
 
-                Album? Album;
+                List<Album>? Albums;
                 if (query.ExtendedQuery)
                 {
-                    Album = await albumsQuery
+                    Albums = await albumsQuery
                     .Include(a => a.Songs)
                     .Include(a => a.AlbumArtistRelations)
                     .ThenInclude(ar => ar.Artist)
-                    .FirstOrDefaultAsync(cancellationToken);
+                    .ToListAsync(cancellationToken);
                 }
                 else
                 {
-                    Album = await albumsQuery
-                    .FirstOrDefaultAsync(cancellationToken);
+                    Albums = await albumsQuery
+                    .ToListAsync(cancellationToken);
                 }
 
-                return Album;
+                return Albums;
             }
         }
 
