@@ -10,15 +10,14 @@ using Persistence;
 
 namespace Application.Albums
 {
-    public class GetAlbum
+    public class SearchAlbums
     {
         public class Query : IRequest<List<Album>?>
         {
-            public Guid? Id { get; set; }
             public string? Name { get; set; } = null;
             public List<String>? Artists { get; set; } = null;
-            //Returns related Songs and Artists, not just Album information
-            public bool ExtendedQuery { get; set; } = false;
+            public bool IncludeSongs { get; set; } = false;
+            public bool IncludeArtists { get; set; } = false;
             //All artists must be present, not just some of them
             public bool AllArtistsPresent { get; set; } = false;
         }
@@ -32,17 +31,12 @@ namespace Application.Albums
             }
             public async Task<List<Album>?> Handle(Query query, CancellationToken cancellationToken)
             {
-                if (query.Name == null && query.Artists == null && query.Id == null)
+                if (query.Name == null && query.Artists == null)
                 {
                     return null;
                 }
 
                 IQueryable<Album> albumsQuery = _context.Albums;
-
-                if (query.Id != null)
-                {
-                    albumsQuery = albumsQuery.Where(a => a.Id == query.Id);
-                }
 
                 if (!String.IsNullOrWhiteSpace(query.Name))
                 {
@@ -70,20 +64,21 @@ namespace Application.Albums
                     }
                 }
 
-                List<Album>? Albums;
-                if (query.ExtendedQuery)
+                if (query.IncludeSongs)
                 {
-                    Albums = await albumsQuery
-                    .Include(a => a.Songs)
-                    .Include(a => a.AlbumArtistRelations)
-                    .ThenInclude(ar => ar.Artist)
-                    .ToListAsync(cancellationToken);
+                    albumsQuery = albumsQuery
+                                    .Include(a => a.Songs);
                 }
-                else
+
+                if (query.IncludeArtists)
                 {
-                    Albums = await albumsQuery
-                    .ToListAsync(cancellationToken);
+                    albumsQuery = albumsQuery
+                                    .Include(a => a.AlbumArtistRelations)
+                                        .ThenInclude(aar => aar.Artist);
                 }
+
+                List<Album>? Albums = await albumsQuery
+                                        .ToListAsync(cancellationToken);
 
                 return Albums;
             }
