@@ -14,6 +14,8 @@ namespace Application.Albums
         public class Query : IRequest<Album>
         {
             public Guid Id { get; set; }
+            public bool IncludeSongs { get; set; } = false;
+            public bool IncludeArtists { get; set; } = false;
         }
 
         public class Handler : IRequestHandler<Query, Album>
@@ -25,17 +27,29 @@ namespace Application.Albums
                 _context = context;
             }
 
-            public async Task<Album> Handle(Query request, CancellationToken cancellationToken)
+            public async Task<Album> Handle(Query query, CancellationToken cancellationToken)
             {
-                var album = await _context.Albums
-                    .Include(a => a.Songs)
-                    .Include(a => a.AlbumArtistRelations)
-                        .ThenInclude(aar => aar.Artist)
-                    .FirstOrDefaultAsync(a => a.Id == request.Id, cancellationToken);
+                IQueryable<Album> albumQuery = _context.Albums.AsQueryable();
+
+                if (query.IncludeSongs)
+                {
+                    albumQuery = albumQuery
+                                    .Include(a => a.Songs);
+                }
+
+                if (query.IncludeArtists)
+                {
+                    albumQuery = albumQuery
+                                    .Include(a => a.AlbumArtistRelations)
+                                        .ThenInclude(aar => aar.Artist);
+                }
+
+                Album? album = await albumQuery
+                    .FirstOrDefaultAsync(a => a.Id == query.Id);
 
                 if (album == null)
                 {
-                    throw new Exception($"Album with ID {request.Id} not found");
+                    throw new Exception($"Album with ID {query.Id} not found");
                 }
 
                 return album;

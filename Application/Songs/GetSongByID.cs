@@ -14,6 +14,8 @@ namespace Application.Songs
         public class Query : IRequest<Song>
         {
             public Guid Id { get; set; }
+            public bool IncludeAlbum { get; set; } = false;
+            public bool IncludeArtists { get; set; } = false;
         }
 
         public class Handler : IRequestHandler<Query, Song>
@@ -26,9 +28,24 @@ namespace Application.Songs
 
             public async Task<Song> Handle(Query query, CancellationToken cancellationToken)
             {
-                var song = await _context.Songs
-                    .Include(s => s.Album)
-                    .FirstOrDefaultAsync(s => s.Id == query.Id, cancellationToken);
+
+                IQueryable<Song> songQuery = _context.Songs.AsQueryable();
+
+                if (query.IncludeAlbum)
+                {
+                    songQuery = songQuery
+                                    .Include(s => s.Album);
+                }
+
+                if (query.IncludeArtists)
+                {
+                    songQuery = songQuery
+                                    .Include(s => s.SongArtistRelations)
+                                        .ThenInclude(sar => sar.Artist);
+                }
+
+                Song? song = await songQuery.
+                    FirstOrDefaultAsync(s => s.Id == query.Id, cancellationToken);
 
                 if (song == null)
                 {
