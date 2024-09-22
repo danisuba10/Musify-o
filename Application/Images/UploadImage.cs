@@ -27,7 +27,16 @@ namespace Application.Images
             public async Task<Unit> Handle(Command command, CancellationToken cancellationToken)
             {
                 var file = command.formFile;
-                var jpegImage = await _mediator.Send(new ConvertToJPG.Command { FormFile = file }, cancellationToken);
+                IFormFile? jpegImage = null;
+                try
+                {
+                    jpegImage = await _mediator.Send(new ConvertToJPG.Command { FormFile = file }, cancellationToken);
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+
                 var filePath = command.Path;
                 var directoryPath = Path.GetDirectoryName(filePath);
 
@@ -36,7 +45,7 @@ namespace Application.Images
                     Directory.CreateDirectory(filePath);
                 }
 
-                using (var fileStream = new FileStream(Path.Combine(filePath, command.Name + ".jpg"), FileMode.Create))
+                using (var fileStream = new FileStream(Path.Combine(filePath, command.Name + ".jpg"), FileMode.Create, FileAccess.Write))
                 {
                     await jpegImage.CopyToAsync(fileStream, cancellationToken);
                 }
