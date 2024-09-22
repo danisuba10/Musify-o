@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Application.Artists;
+using Application.Images;
 using Application.DataTransferObjects;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,6 +50,33 @@ namespace API.Controllers
             }
 
             return Ids;
+        }
+
+        [HttpPost("AddArtistImage")]
+        public async Task<IActionResult> AddAlbumImage(Guid ArtistID, IFormFile formFile, CancellationToken cancellationToken)
+        {
+            var album = await Mediator.Send(new GetArtist.Query { Id = ArtistID });
+            if (album != null)
+            {
+                try
+                {
+                    await Mediator.Send(new UploadImage.Command
+                    {
+                        formFile = formFile,
+                        Path = Path.Combine(ImageFolderPath, "Artists1"),
+                        Name = ArtistID.ToString()
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+                return Ok();
+            }
+            else
+            {
+                return BadRequest("Album does not exist!");
+            }
         }
     }
 }
