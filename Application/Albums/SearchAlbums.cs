@@ -67,11 +67,12 @@ namespace Application.Albums
 
                 if (query.Songs != null && query.Songs.Any())
                 {
-                    foreach (var searchedSong in query.Songs)
+                    foreach (var song in query.Songs)
                     {
+                        String searchedSong = song.ToLower();
                         albumsQuery = albumsQuery
                             .Where(a => a.Songs
-                                .Any(s => s.Title.Contains(searchedSong)));
+                                .Any(s => s.Title.ToLower().Contains(searchedSong)));
                     }
                 }
 
