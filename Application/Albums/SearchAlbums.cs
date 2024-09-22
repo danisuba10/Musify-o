@@ -16,6 +16,7 @@ namespace Application.Albums
         {
             public string? Name { get; set; } = null;
             public List<String>? Artists { get; set; } = null;
+            public List<String>? Songs { get; set; } = null;
             public bool IncludeSongs { get; set; } = false;
             public bool IncludeArtists { get; set; } = false;
             //All artists must be present, not just some of them
@@ -61,6 +62,16 @@ namespace Application.Albums
                         albumsQuery = albumsQuery
                             .Where(a => a.AlbumArtistRelations
                                 .Any(ar => query.Artists.Contains(ar.Artist.Name)));
+                    }
+                }
+
+                if (query.Songs != null && query.Songs.Any())
+                {
+                    foreach (var searchedSong in query.Songs)
+                    {
+                        albumsQuery = albumsQuery
+                            .Where(a => a.Songs
+                                .Any(s => s.Title.Contains(searchedSong)));
                     }
                 }
 
