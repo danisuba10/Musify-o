@@ -9,6 +9,7 @@ using Application.Albums;
 using Application.Artists;
 using MediatR;
 using Application.Images;
+using Application.Songs;
 
 namespace API.Controllers
 {
@@ -90,7 +91,7 @@ namespace API.Controllers
             }
 
             var ExistingAlbum = await Mediator.Send(
-                new GetAlbum.Query { Name = Album.Name, Artists = ArtistsString, AllArtistsPresent = true });
+                new SearchAlbums.Query { Name = Album.Name, Artists = ArtistsString, AllArtistsPresent = true });
 
             if (ExistingAlbum != null)
             {
@@ -141,10 +142,10 @@ namespace API.Controllers
         [HttpGet("GetAlbumID")]
         public async Task<IActionResult> GetAlbumId(string name, CancellationToken cancellationToken)
         {
-            var album = await Mediator.Send(new GetAlbum.Query { Name = name });
-            if (album != null)
+            var albums = await Mediator.Send(new SearchAlbums.Query { Name = name });
+            if (albums != null)
             {
-                return Ok(album.Id);
+                return Ok(albums[0].Id);
             }
             else
             {
@@ -155,15 +156,22 @@ namespace API.Controllers
         [HttpPost("AddAlbumImage")]
         public async Task<IActionResult> AddAlbumImage(Guid AlbumID, IFormFile formFile, CancellationToken cancellationToken)
         {
-            var album = await Mediator.Send(new GetAlbum.Query { Id = AlbumID });
+            var album = await Mediator.Send(new GetAlbumByID.Query { Id = AlbumID });
             if (album != null)
             {
-                await Mediator.Send(new UploadImage.Command
+                try
                 {
-                    formFile = formFile,
-                    Path = Path.Combine(ImageFolderPath, "Albums"),
-                    Name = AlbumID.ToString()
-                });
+                    await Mediator.Send(new UploadImage.Command
+                    {
+                        formFile = formFile,
+                        Path = Path.Combine(ImageFolderPath, "Albums"),
+                        Name = AlbumID.ToString()
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
                 return Ok();
             }
             else
@@ -171,5 +179,14 @@ namespace API.Controllers
                 return BadRequest("Album does not exist!");
             }
         }
+
+        // [HttpPost("AddSongToAlbum")]
+        // public async Task<IActionResult> AddSongToAlbum(Guid AlbumID, Guid SongID)
+        // {
+        //     var album = await Mediator.Send(new GetAlbum.Query { Id = AlbumID, ExtendedQuery = true });
+        //     var song = await Mediator.Send(new GetSong.Query { Id = SongID, ExtendedQuery = false });
+
+
+        // }
     }
 }
