@@ -13,9 +13,11 @@ namespace Application.Songs
     {
         public class Query : IRequest<List<Song>>
         {
-            public string? SongTitle { get; set; }
-            public string? ArtistName { get; set; }
+            public string? Title { get; set; }
+            public List<String>? Artists { get; set; }
             public string? AlbumName { get; set; }
+            public bool IncludeAlbum { get; set; } = false;
+            public bool IncludeArtists { get; set; } = false;
         }
 
         public class Handler : IRequestHandler<Query, List<Song>>
@@ -29,25 +31,38 @@ namespace Application.Songs
             public async Task<List<Song>> Handle(Query request, CancellationToken cancellationToken)
             {
                 var query = _context.Songs
-                    .Include(s => s.Album)
-                        .ThenInclude(a => a.AlbumArtistRelations)
-                            .ThenInclude(aar => aar.Artist)
+                    .Include(s => s.SongArtistRelations)
                     .AsQueryable();
 
-                if (!string.IsNullOrWhiteSpace(request.SongTitle))
+                if (!string.IsNullOrWhiteSpace(request.Title))
                 {
-                    query = query.Where(s => s.Title.Contains(request.SongTitle, StringComparison.OrdinalIgnoreCase));
+                    query = query.Where(s => s.Title.ToLower().Contains(request.Title.ToLower()));
                 }
 
                 if (!string.IsNullOrEmpty(request.AlbumName))
                 {
-                    query = query.Where(s => s.Album.Name.Contains(request.AlbumName, StringComparison.OrdinalIgnoreCase));
+                    query = query.Where(s => s.Album.Name.ToLower().Contains(request.AlbumName.ToLower()));
                 }
 
-                if (!string.IsNullOrWhiteSpace(request.ArtistName))
+
+                if (request.Artists != null && request.Artists.Any())
                 {
-                    query = query.Where(s => s.Album.AlbumArtistRelations
-                        .Any(aar => aar.Artist.Name.Contains(request.ArtistName, StringComparison.OrdinalIgnoreCase)));
+                    foreach (var artist in request.Artists)
+                    {
+                        String searchedArtist = artist.ToLower();
+                        query = query.Where(s =>
+                            s.SongArtistRelations.Any(ar => ar.Artist.Name.Contains(searchedArtist)));
+                    }
+                }
+
+                if (request.IncludeAlbum)
+                {
+                    query = query.Include(s => s.Album);
+                }
+
+                if (request.IncludeArtists)
+                {
+                    query.Include(s => s.SongArtistRelations.Select(ar => ar.Artist));
                 }
 
                 var songs = await query.ToListAsync(cancellationToken);
