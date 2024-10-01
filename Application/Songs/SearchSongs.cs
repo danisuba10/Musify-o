@@ -62,7 +62,7 @@ namespace Application.Songs
 
                 if (request.IncludeArtists)
                 {
-                    query.Include(s => s.SongArtistRelations.Select(ar => ar.Artist));
+                    query = query.Include(s => s.SongArtistRelations.Select(ar => ar.Artist));
                 }
 
                 var songs = await query.ToListAsync(cancellationToken);
