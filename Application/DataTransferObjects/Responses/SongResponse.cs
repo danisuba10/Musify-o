@@ -15,6 +15,7 @@ namespace Application.DataTransferObjects.Responses
         public Guid? AlbumId { get; set; } = null;
         public Album Album { get; set; } = null!;
         public int PositionInAlbum { get; set; } = -1;
-        public List<Artist> Artists { get; set; } = new List<Artist>();
+        public List<ArtistResponse> Artists { get; set; } = new List<ArtistResponse>();
+        public List<Guid> ArtistIds { get; set; } = new List<Guid>();
     }
 }
