@@ -37,7 +37,9 @@ namespace Application.Albums
                     return null;
                 }
 
-                IQueryable<Album> albumsQuery = _context.Albums;
+                IQueryable<Album> albumsQuery = _context.Albums
+                    .Include(a => a.AlbumArtistRelations)
+                    .AsQueryable();
 
                 if (!String.IsNullOrWhiteSpace(query.Name))
                 {
