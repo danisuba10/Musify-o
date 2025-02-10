@@ -10,6 +10,9 @@ using Application.Artists;
 using MediatR;
 using Application.Images;
 using Application.Songs;
+using Application.DataTransferObjects.Requests;
+using Application.DataTransferObjects.Responses;
+using Application.Mappers;
 
 namespace API.Controllers
 {
@@ -185,8 +188,30 @@ namespace API.Controllers
         // {
         //     var album = await Mediator.Send(new GetAlbum.Query { Id = AlbumID, ExtendedQuery = true });
         //     var song = await Mediator.Send(new GetSong.Query { Id = SongID, ExtendedQuery = false });
-
-
         // }
+
+        [HttpPost("albums/search")]
+        public async Task<List<AlbumResponse>> search([FromBody] AlbumSearchRequest request)
+        {
+            var query = new SearchAlbums.Query
+            {
+                Name = request.Name,
+                Artists = request.Artists,
+                Songs = request.Songs,
+                IncludeSongs = request.IncludeSongs,
+                IncludeArtists = request.IncludeArtists,
+                AllArtistsPresent = request.AllArtistsPresent
+            };
+
+            var albums = await Mediator.Send(query);
+            if (albums != null)
+            {
+                return AlbumMapper.MapToResponseList(albums);
+            }
+            else
+            {
+                return new List<AlbumResponse>();
+            }
+        }
     }
 }
