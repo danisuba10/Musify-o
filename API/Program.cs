@@ -12,6 +12,7 @@ using Application.Users;
 using Application.Search;
 using Application.Core;
 using System.Text.Json.Serialization;
+using Application.Images;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,10 +59,14 @@ builder.Services.AddMediatR(typeof(RegisterUser.Handler).Assembly);
 
 builder.Services.AddMediatR(typeof(GlobalSearch.Handler).Assembly);
 
+builder.Services.AddMediatR(typeof(UploadImage.Handler).Assembly);
+builder.Services.AddMediatR(typeof(ResizeImage.Handler).Assembly);
+
 builder.Services.AddAutoMapper(typeof(AlbumMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(SongMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(ArtistMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(UserMappingProfile).Assembly);
+
 
 
 var app = builder.Build();
