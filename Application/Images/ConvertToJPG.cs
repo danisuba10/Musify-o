@@ -19,18 +19,23 @@ namespace Application.Images
         }
         public class Handler : IRequestHandler<Command, IFormFile>
         {
+            private readonly IMediator _mediator;
+            public Handler(IMediator mediator)
+            {
+                _mediator = mediator;
+            }
             public async Task<IFormFile> Handle(Command command, CancellationToken cancellationToken)
             {
                 var file = command.FormFile;
 
                 if (IsJPEG(file))
                 {
-                    var jpgFile = await ConvertPNGToJPG(file);
+                    var jpgFile = await ConvertPNGToJPG(file, cancellationToken);
                     return jpgFile;
                 }
                 else if (IsPNG(file))
                 {
-                    var jpgFile = await ConvertPNGToJPG(file);
+                    var jpgFile = await ConvertPNGToJPG(file, cancellationToken);
                     return jpgFile;
                 }
 
@@ -50,14 +55,18 @@ namespace Application.Images
                 file.FileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
             }
 
-            private async Task<IFormFile> ConvertPNGToJPG(IFormFile file)
+            private async Task<IFormFile> ConvertPNGToJPG(IFormFile file, CancellationToken cancellationToken)
             {
+                IFormFile resizedFile = await _mediator.Send(new ResizeImage.Command { FormFile = file, Width = 500, Height = 500 }, cancellationToken);
+                file = resizedFile;
+
                 using (var inputStream = file.OpenReadStream())
                 {
                     using (var image = await Image.LoadAsync(inputStream))
                     {
+
                         var memoryStream = new MemoryStream();
-                        var Encoder = new JpegEncoder { Quality = 30 };
+                        var Encoder = new JpegEncoder { Quality = 100 };
 
                         await image.SaveAsJpegAsync(memoryStream, Encoder);
                         memoryStream.Position = 0;
