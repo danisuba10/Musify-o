@@ -24,5 +24,22 @@ namespace API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpGet("image/{path}")]
+        public async Task<IActionResult> getImage(string path)
+        {
+            string decodedPath = Uri.UnescapeDataString(path);
+            string imagePath = Path.Combine(ImageFolderPath, decodedPath); //like /app/images/docker/docker1.jpg
+            //path = "/app/images/docker/docker1.jpg";
+
+            if (!System.IO.File.Exists(imagePath))
+            {
+                return NotFound("Image not found." + "\n" + imagePath);
+            }
+
+            var image = await System.IO.File.ReadAllBytesAsync(imagePath);
+            return File(image, "image/jpeg");
+
+        }
     }
 }
