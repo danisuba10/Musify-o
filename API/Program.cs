@@ -13,6 +13,10 @@ using Application.Search;
 using Application.Core;
 using System.Text.Json.Serialization;
 using Application.Images;
+using Microsoft.EntityFrameworkCore.Design;
+using DotNetEnv;
+
+Env.Load("../.env");
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,8 +33,21 @@ builder.Services.AddControllers()
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseMySql(
-    builder.Configuration.GetConnectionString("WebApiDatabase"), new MySqlServerVersion(new Version(8, 0, 23))));
+
+var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__WebApiDatabase");
+// var connectionString = Environment.GetEnvironmentVariable("CON");
+// var connectionString = "server=mysql; database=" + Environment.GetEnvironmentVariable("MYSQL_DATABASE") + "; user=" + Environment.GetEnvironmentVariable("MYSQL_USER") + "; password=" + Environment.GetEnvironmentVariable("MYSQL_PASSWORD");
+Console.WriteLine(connectionString);
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Connection string not found in environment variables.");
+}
+
+
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0)), options => options.EnableRetryOnFailure(maxRetryCount: 10, maxRetryDelay: System.TimeSpan.FromSeconds(30), errorNumbersToAdd: null)));
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
