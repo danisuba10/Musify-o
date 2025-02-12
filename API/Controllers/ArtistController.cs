@@ -6,11 +6,32 @@ using Application.Artists;
 using Application.Images;
 using Application.DataTransferObjects;
 using Microsoft.AspNetCore.Mvc;
+using Domain;
 
 namespace API.Controllers
 {
     public class ArtistController : BaseController
     {
+        private async Task<String> AddImage(IFormFile file, string name)
+        {
+            string imagePath;
+            try
+            {
+                imagePath = await Mediator.Send(new UploadImage.Command
+                {
+                    formFile = file,
+                    Path = Path.Combine(ImageFolderPath, "artist"),
+                    Name = name
+                });
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            return Path.Combine("/artist", name);
+        }
+
         [HttpPost("GetArtistByName")]
         public async Task<IActionResult> GetArtistByName(string Name, CancellationToken cancellationToken)
         {
@@ -78,5 +99,45 @@ namespace API.Controllers
                 return BadRequest("Album does not exist!");
             }
         }
+
+        [HttpPost("add-artist")]
+        public async Task<IActionResult> addArtist(string name, IFormFile? formFile, CancellationToken cancellationToken)
+        {
+            Guid id = Guid.NewGuid();
+
+            IActionResult imageUploadResult = null;
+            string? imagePath = null;
+            string? errorMessage = null;
+
+            if (formFile != null)
+            {
+                try
+                {
+                    imagePath = await AddImage(formFile, id.ToString());
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = ex.Message;
+                }
+            }
+
+
+            Artist artist = new Artist
+            {
+                Name = name,
+                Id = id,
+                ImageLocation = imagePath
+            };
+
+            await Mediator.Send(new AddArtist.Command { Artist = artist });
+
+            if (formFile != null && imageUploadResult is BadRequestObjectResult)
+            {
+                return BadRequest("Artist created, but failed to upload image.\n" + errorMessage);
+            }
+
+            return Ok(new { Id = id, Message = "Artist and image added successfully!" });
+        }
+
     }
 }
