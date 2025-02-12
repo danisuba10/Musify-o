@@ -14,6 +14,12 @@ namespace Domain
         public string Name { get; set; } = string.Empty;
         [Required]
         public string ImageLocation { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        [Required]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
         public ICollection<SongArtistRelation> SongArtistRelations { get; set; } = new List<SongArtistRelation>();
         public ICollection<AlbumArtistRelation> AlbumArtistRelations { get; set; } = new List<AlbumArtistRelation>();
     }

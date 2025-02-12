@@ -48,13 +48,13 @@ namespace Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("9b05acd7-cca7-48e5-93ea-95c54b7254c4"),
+                            Id = new Guid("bcfdc9e8-fdd7-4f00-b398-11e9b757ddce"),
                             ImageLocation = "path/to/image1",
                             Name = "First Album"
                         },
                         new
                         {
-                            Id = new Guid("24b82b49-4347-4bde-a8ff-fa9da3af8a31"),
+                            Id = new Guid("2f227d3d-473f-4bfb-8f77-2400ddeba03b"),
                             ImageLocation = "path/to/image2",
                             Name = "Second Album"
                         });
@@ -81,18 +81,18 @@ namespace Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            AlbumId = new Guid("9b05acd7-cca7-48e5-93ea-95c54b7254c4"),
-                            ArtistId = new Guid("4360f82d-c3d0-4ca9-a2f7-5c5c3c1c8061")
+                            AlbumId = new Guid("bcfdc9e8-fdd7-4f00-b398-11e9b757ddce"),
+                            ArtistId = new Guid("144b3ba5-03df-4ea3-abde-9fff51549409")
                         },
                         new
                         {
-                            AlbumId = new Guid("9b05acd7-cca7-48e5-93ea-95c54b7254c4"),
-                            ArtistId = new Guid("1915e314-35b8-4492-959e-c8330d32e28d")
+                            AlbumId = new Guid("bcfdc9e8-fdd7-4f00-b398-11e9b757ddce"),
+                            ArtistId = new Guid("866f690b-f411-4ebc-8ff6-f64d8bbbbe6c")
                         },
                         new
                         {
-                            AlbumId = new Guid("24b82b49-4347-4bde-a8ff-fa9da3af8a31"),
-                            ArtistId = new Guid("1915e314-35b8-4492-959e-c8330d32e28d")
+                            AlbumId = new Guid("2f227d3d-473f-4bfb-8f77-2400ddeba03b"),
+                            ArtistId = new Guid("866f690b-f411-4ebc-8ff6-f64d8bbbbe6c")
                         });
                 });
 
@@ -103,6 +103,9 @@ namespace Persistence.Migrations
                         .HasColumnType("char(36)")
                         .HasDefaultValueSql("'UUID()'");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("ImageLocation")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -111,6 +114,9 @@ namespace Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 
@@ -122,15 +128,19 @@ namespace Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("4360f82d-c3d0-4ca9-a2f7-5c5c3c1c8061"),
+                            Id = new Guid("144b3ba5-03df-4ea3-abde-9fff51549409"),
+                            CreatedAt = new DateTime(2025, 2, 12, 18, 15, 36, 285, DateTimeKind.Utc).AddTicks(2461),
                             ImageLocation = "path/to/image1",
-                            Name = "First Artist"
+                            Name = "First Artist",
+                            UpdatedAt = new DateTime(2025, 2, 12, 18, 15, 36, 285, DateTimeKind.Utc).AddTicks(2463)
                         },
                         new
                         {
-                            Id = new Guid("1915e314-35b8-4492-959e-c8330d32e28d"),
+                            Id = new Guid("866f690b-f411-4ebc-8ff6-f64d8bbbbe6c"),
+                            CreatedAt = new DateTime(2025, 2, 12, 18, 15, 36, 285, DateTimeKind.Utc).AddTicks(2471),
                             ImageLocation = "path/to/image2",
-                            Name = "Second Artist"
+                            Name = "Second Artist",
+                            UpdatedAt = new DateTime(2025, 2, 12, 18, 15, 36, 285, DateTimeKind.Utc).AddTicks(2471)
                         });
                 });
 
@@ -171,24 +181,24 @@ namespace Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("8769057b-11d7-4188-b15b-545e373c9b36"),
-                            AlbumId = new Guid("9b05acd7-cca7-48e5-93ea-95c54b7254c4"),
+                            Id = new Guid("7d489738-ab06-41dd-8b8f-796496a62a91"),
+                            AlbumId = new Guid("bcfdc9e8-fdd7-4f00-b398-11e9b757ddce"),
                             Duration = new TimeSpan(0, 0, 3, 45, 0),
                             PositionInAlbum = -1,
                             Title = "First Song"
                         },
                         new
                         {
-                            Id = new Guid("cc92ed37-447b-4563-8f56-4c52e2c3867b"),
-                            AlbumId = new Guid("9b05acd7-cca7-48e5-93ea-95c54b7254c4"),
+                            Id = new Guid("e5f95f6c-f847-4306-9cd3-5ce5abe54a3f"),
+                            AlbumId = new Guid("bcfdc9e8-fdd7-4f00-b398-11e9b757ddce"),
                             Duration = new TimeSpan(0, 0, 4, 20, 0),
                             PositionInAlbum = -1,
                             Title = "Second Song"
                         },
                         new
                         {
-                            Id = new Guid("ab1835db-c7b4-4b92-bcc1-ea88c6867868"),
-                            AlbumId = new Guid("24b82b49-4347-4bde-a8ff-fa9da3af8a31"),
+                            Id = new Guid("4170612e-38f0-46a9-9d6c-ed99e88bceb5"),
+                            AlbumId = new Guid("2f227d3d-473f-4bfb-8f77-2400ddeba03b"),
                             Duration = new TimeSpan(0, 0, 5, 0, 0),
                             PositionInAlbum = -1,
                             Title = "Third Song"
@@ -216,18 +226,18 @@ namespace Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            SongId = new Guid("8769057b-11d7-4188-b15b-545e373c9b36"),
-                            ArtistId = new Guid("4360f82d-c3d0-4ca9-a2f7-5c5c3c1c8061")
+                            SongId = new Guid("7d489738-ab06-41dd-8b8f-796496a62a91"),
+                            ArtistId = new Guid("144b3ba5-03df-4ea3-abde-9fff51549409")
                         },
                         new
                         {
-                            SongId = new Guid("cc92ed37-447b-4563-8f56-4c52e2c3867b"),
-                            ArtistId = new Guid("4360f82d-c3d0-4ca9-a2f7-5c5c3c1c8061")
+                            SongId = new Guid("e5f95f6c-f847-4306-9cd3-5ce5abe54a3f"),
+                            ArtistId = new Guid("144b3ba5-03df-4ea3-abde-9fff51549409")
                         },
                         new
                         {
-                            SongId = new Guid("ab1835db-c7b4-4b92-bcc1-ea88c6867868"),
-                            ArtistId = new Guid("1915e314-35b8-4492-959e-c8330d32e28d")
+                            SongId = new Guid("4170612e-38f0-46a9-9d6c-ed99e88bceb5"),
+                            ArtistId = new Guid("866f690b-f411-4ebc-8ff6-f64d8bbbbe6c")
                         });
                 });
 
