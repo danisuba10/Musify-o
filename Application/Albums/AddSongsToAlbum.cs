@@ -13,39 +13,50 @@ namespace Application.Albums
 {
     public class AddSongsToAlbum
     {
-        public class Query : IRequest
+        public class Query : IRequest<int>
         {
             public Guid AlbumId { get; set; }
-            public List<Song> Songs { get; set; } = [];
+            public List<Guid> SongIds { get; set; } = new List<Guid>();
         }
 
-        public class Handler : IRequestHandler<Query>
+        public class Handler : IRequestHandler<Query, int>
         {
             private readonly ApplicationDbContext _context;
             public Handler(ApplicationDbContext context)
             {
                 _context = context;
             }
-            public async Task<Unit> Handle(Query query, CancellationToken cancellationToken)
+            public async Task<int> Handle(Query query, CancellationToken cancellationToken)
             {
-                var Album = await _context.Albums
-                    .Include(a => a.Songs)
-                    .FirstOrDefaultAsync(a => a.Id == query.AlbumId, cancellationToken);
+                var albumExists = await _context.Albums
+                    .AnyAsync(a => a.Id == query.AlbumId, cancellationToken);
 
-                if (Album == null)
+                if (!albumExists)
                 {
                     throw new Exception("Album does not exist!");
                 }
 
-                foreach (Song Song in query.Songs)
+                var albumSongs = new List<Song>();
+                foreach (Guid songId in query.SongIds)
                 {
-                    Album.Songs.Add(Song);
+                    var song = await _context.Songs
+                        .FirstOrDefaultAsync(s => s.Id == songId && s.AlbumId == null, cancellationToken);
+
+                    if (song != null)
+                    {
+                        song.AlbumId = query.AlbumId;
+                        albumSongs.Add(song);
+                    }
+
                 }
 
-                _context.Albums.Update(Album);
-                await _context.SaveChangesAsync();
+                if (albumSongs.Count > 0)
+                {
+                    _context.Songs.UpdateRange(albumSongs);
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
 
-                return Unit.Value;
+                return query.SongIds.Count - albumSongs.Count;
             }
         }
     }
