@@ -16,16 +16,37 @@ using Application.Mappers;
 
 namespace API.Controllers
 {
+    [Route("album/")]
     public class AlbumController : BaseController
     {
+        private async Task<String> AddImage(IFormFile file, string name)
+        {
+            string imagePath;
+            try
+            {
+                imagePath = await Mediator.Send(new UploadImage.Command
+                {
+                    formFile = file,
+                    Path = Path.Combine(ImageFolderPath, "album"),
+                    Name = name
+                });
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            return Path.Combine("/album", name, ".jpg");
+        }
+
         private async Task<Artist> GetOrCreateArtist
         (ArtistDTO artistDTO, HashSet<Artist> usedArtists, CancellationToken cancellationToken)
         {
-            var Artist = usedArtists.FirstOrDefault(a => a.Name == artistDTO.ArtistName);
+            var Artist = usedArtists.FirstOrDefault(a => a.Name == artistDTO.Name);
 
             if (Artist == null)
             {
-                Artist = await Mediator.Send(new GetArtist.Query { Name = artistDTO.ArtistName });
+                Artist = await Mediator.Send(new GetArtist.Query { Name = artistDTO.Name });
 
                 if (Artist == null)
                 {
@@ -43,7 +64,7 @@ namespace API.Controllers
                     Artist = new Artist()
                     {
                         Id = ArtistID,
-                        Name = artistDTO.ArtistName
+                        Name = artistDTO.Name
                     };
                     Artist.ImageLocation = "artists/" + Artist.Id;
                 }
@@ -71,7 +92,7 @@ namespace API.Controllers
             var Album = new Album
             {
                 Id = AlbumID,
-                Name = albumDto.AlbumName,
+                Name = albumDto.Name,
                 Songs = new HashSet<Song>(),
                 AlbumArtistRelations = new List<AlbumArtistRelation>()
             };
@@ -190,7 +211,7 @@ namespace API.Controllers
         //     var song = await Mediator.Send(new GetSong.Query { Id = SongID, ExtendedQuery = false });
         // }
 
-        [HttpPost("albums/search")]
+        [HttpPost("/search")]
         public async Task<List<AlbumResponse>> search([FromBody] AlbumSearchRequest request)
         {
             var query = new SearchAlbums.Query
@@ -212,6 +233,66 @@ namespace API.Controllers
             {
                 return new List<AlbumResponse>();
             }
+        }
+
+        [HttpPost("add-album")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> addAlbum(string name, IFormFile? file, List<Guid>? artistsIds)
+        {
+            Guid id = Guid.NewGuid();
+            string? imagePath = null;
+            string errorMessage = "";
+
+            if (file != null)
+            {
+                try
+                {
+                    imagePath = await AddImage(file, id.ToString());
+                }
+                catch (Exception ex)
+                {
+                    errorMessage += "Image upload failed!: " + ex.Message + "\n";
+                }
+            }
+
+            Album album = new Album
+            {
+                Id = id,
+                ImageLocation = imagePath,
+                Name = name
+            };
+
+            await Mediator.Send(new AddAlbum.Command { Album = album });
+
+            if (artistsIds != null && artistsIds.Count > 0)
+            {
+                int failures = await Mediator.Send(new AddArtistsToAlbum.Query { AlbumId = id, ArtistIds = artistsIds });
+                if (failures != 0)
+                {
+                    errorMessage += "Out of " + artistsIds.Count.ToString() + " artists " + failures.ToString() + " could not be added!\n";
+                }
+            }
+
+            if (!String.IsNullOrWhiteSpace(errorMessage))
+            {
+                return BadRequest(errorMessage);
+            }
+
+            return Ok(new { Id = id, Message = "Album added successfully!" });
+        }
+
+        [HttpGet("/{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AlbumResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> getAlbumById(Guid id)
+        {
+            Album? album = await Mediator.Send(new GetAlbumByID.Query { Id = id });
+            if (album == null)
+            {
+                return NotFound("Album with this ID not found!");
+            }
+            return Ok(AlbumMapper.MapToResponse(album));
         }
     }
 }
