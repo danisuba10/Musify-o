@@ -29,8 +29,7 @@ namespace API.Controllers
         public async Task<IActionResult> getImage(string path)
         {
             string decodedPath = Uri.UnescapeDataString(path);
-            string imagePath = Path.Combine(ImageFolderPath, decodedPath); //like /app/images/docker/docker1.jpg
-            //path = "/app/images/docker/docker1.jpg";
+            string imagePath = Path.Combine(ImageFolderPath, decodedPath);
 
             if (!System.IO.File.Exists(imagePath))
             {
