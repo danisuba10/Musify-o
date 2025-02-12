@@ -51,7 +51,7 @@ namespace Application.Images
                     await jpegImage.CopyToAsync(fileStream, cancellationToken);
                 }
 
-                return resultFilePath;
+                return Path.Combine(resultFilePath, ".jpg");
             }
         }
     }
