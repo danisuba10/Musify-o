@@ -12,6 +12,20 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__WebApiDatabase=server=mysql;port=3306;database=musify;user=${MYSQL_ROOT_USER};password=${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
 
 volumes:
   image-storage:
+  mysql-data:
