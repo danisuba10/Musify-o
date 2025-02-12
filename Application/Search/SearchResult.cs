@@ -10,6 +10,6 @@ namespace Application.Search
         public required string Type { get; set; }
         public required Guid Id { get; set; }
         public required string Name { get; set; }
-        public string? ImgPath { get; set; }
+        public string? ImageLocation { get; set; }
     }
 }
