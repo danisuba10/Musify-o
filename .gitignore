@@ -24,3 +24,4 @@ obj/
 *.config
 api/Controllers/WeatherForecastController.cs
 api/Images
+.env
