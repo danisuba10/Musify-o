@@ -7,9 +7,14 @@ using Application.Images;
 using Application.DataTransferObjects;
 using Microsoft.AspNetCore.Mvc;
 using Domain;
+using Application.DataTransferObjects.Responses;
+using Application.Mappers;
+using Microsoft.AspNetCore.Http;
+using System.Threading;
 
 namespace API.Controllers
 {
+    [Route("artist/")]
     public class ArtistController : BaseController
     {
         private async Task<String> AddImage(IFormFile file, string name)
@@ -33,6 +38,8 @@ namespace API.Controllers
         }
 
         [HttpPost("GetArtistByName")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ArtistDTO))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetArtistByName(string Name, CancellationToken cancellationToken)
         {
             var artist = await Mediator.Send(new GetArtist.Query { Name = Name });
@@ -42,10 +49,12 @@ namespace API.Controllers
                 return NotFound(new { Message = "Artist not found" });
             }
 
-            return Ok(new ArtistDTO { ArtistName = artist.Name, ImgLocation = artist.ImageLocation, Id = artist.Id });
+            return Ok(new ArtistDTO { Name = artist.Name, ImageLocation = artist.ImageLocation, Id = artist.Id });
         }
 
         [HttpGet("GetArtistID")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetArtistID(string name, CancellationToken cancellationToken)
         {
             var artist = await Mediator.Send(new GetArtist.Query { Name = name }, cancellationToken);
@@ -60,6 +69,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetAllArtistIds")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Guid>))]
         public async Task<List<Guid>> GetAllArtistIDs()
         {
             List<Guid> Ids = new List<Guid>();
@@ -74,6 +84,8 @@ namespace API.Controllers
         }
 
         [HttpPost("AddArtistImage")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddAlbumImage(Guid ArtistID, IFormFile formFile, CancellationToken cancellationToken)
         {
             var album = await Mediator.Send(new GetArtist.Query { Id = ArtistID });
@@ -101,6 +113,8 @@ namespace API.Controllers
         }
 
         [HttpPost("add-artist")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> addArtist(string name, IFormFile? formFile, CancellationToken cancellationToken)
         {
             Guid id = Guid.NewGuid();
@@ -121,7 +135,6 @@ namespace API.Controllers
                 }
             }
 
-
             Artist artist = new Artist
             {
                 Name = name,
@@ -139,5 +152,17 @@ namespace API.Controllers
             return Ok(new { Id = id, Message = "Artist and image added successfully!" });
         }
 
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ArtistResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> getArtistById(Guid id)
+        {
+            Artist? artist = await Mediator.Send(new GetArtist.Query { Id = id });
+            if (artist == null)
+            {
+                return NotFound("Artist with this ID not found!");
+            }
+            return Ok(ArtistMapper.MapToResponse(artist));
+        }
     }
 }
