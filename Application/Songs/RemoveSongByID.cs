@@ -28,7 +28,7 @@ namespace Application.Songs
 
                 if (Song == null)
                 {
-                    throw new Exception($"Song does not exist exist!");
+                    throw new Exception("Song does not exist exist!");
                 }
 
                 _context.Songs.Remove(Song);

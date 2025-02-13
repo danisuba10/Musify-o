@@ -15,15 +15,20 @@ namespace Application.Songs
         public class Command : IRequest
         {
             public Guid Id { get; set; }
-            public Song Song { get; set; } = new Song();
+            public string? Title { get; set; }
+            public TimeSpan? Duration { get; set; }
+            public Guid? AlbumID { get; set; }
+            public int? PositionInAlbum { get; set; }
         }
 
         public class Handler : IRequestHandler<Command>
         {
             private readonly ApplicationDbContext _context;
-            public Handler(ApplicationDbContext context)
+            private readonly IMediator _mediator;
+            public Handler(ApplicationDbContext context, IMediator mediator)
             {
                 _context = context;
+                _mediator = mediator;
             }
             public async Task<Unit> Handle(Command command, CancellationToken cancellationToken)
             {
@@ -32,38 +37,36 @@ namespace Application.Songs
 
                 if (existingSong == null)
                 {
-                    throw new Exception($"Song was not found!");
+                    throw new Exception("Song was not found!");
                 }
 
-                Song NewSong = command.Song;
-
-                if (!string.IsNullOrWhiteSpace(NewSong.Title))
+                if (!string.IsNullOrWhiteSpace(command.Title))
                 {
-                    existingSong.Title = NewSong.Title;
+                    existingSong.Title = command.Title;
                 }
 
-                if (NewSong.Duration != TimeSpan.FromSeconds(0))
+                if (command.Duration != null && command.Duration != TimeSpan.FromSeconds(0))
                 {
-                    existingSong.Duration = NewSong.Duration;
+                    existingSong.Duration = (TimeSpan)command.Duration;
                 }
 
-                if (NewSong.AlbumId.HasValue)
+                if (command.AlbumID != null)
                 {
 
                     var albumExists = await _context.Albums
-                        .AnyAsync(a => a.Id == NewSong.AlbumId);
+                        .AnyAsync(a => a.Id == command.AlbumID);
 
                     if (!albumExists)
                     {
                         throw new Exception("Album does not exist! Cant update Song's album!");
                     }
 
-                    existingSong.AlbumId = NewSong.AlbumId;
+                    existingSong.AlbumId = command.AlbumID;
                 }
 
-                if (NewSong.PositionInAlbum != -1)
+                if (command.PositionInAlbum != null)
                 {
-                    existingSong.PositionInAlbum = NewSong.PositionInAlbum;
+                    existingSong.PositionInAlbum = (int)command.PositionInAlbum;
                 }
 
                 _context.Songs.Update(existingSong);

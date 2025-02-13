@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Domain;
 using Persistence;
+using Application.DataTransferObjects.Requests;
 
 namespace Application.Songs
 {
@@ -12,8 +13,8 @@ namespace Application.Songs
     {
         public class Command : IRequest
         {
-            public required Song Song { get; set; }
-        }
+            public required AddSongRequest songRequest;
+        };
 
         public class Handler : IRequestHandler<Command>
         {
@@ -24,7 +25,15 @@ namespace Application.Songs
             }
             public async Task<Unit> Handle(Command command, CancellationToken cancellationToken)
             {
-                _context.Songs.Add(command.Song);
+                Song song = new Song
+                {
+                    Id = Guid.NewGuid(),
+                    Title = command.songRequest.Title,
+                    PositionInAlbum = command.songRequest.PositionInAlbum ?? -1,
+                    AlbumId = command.songRequest.AlbumId,
+                    Duration = TimeSpan.FromSeconds(command.songRequest.Duration)
+                };
+                _context.Songs.Add(song);
                 await _context.SaveChangesAsync();
                 return Unit.Value;
             }
