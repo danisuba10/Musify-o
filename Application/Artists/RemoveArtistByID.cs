@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Artists
 {
-    public class DeleteArtistByID
+    public class RemoveArtistByID
     {
         public class Command : IRequest
         {
