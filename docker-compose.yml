@@ -13,6 +13,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__WebApiDatabase=server=mysql;port=3306;database=musify;user=${MYSQL_ROOT_USER};password=${MYSQL_ROOT_PASSWORD}
+      - ImageSettings__ImageFolderPath=/app/images
     depends_on:
       - mysql
 
