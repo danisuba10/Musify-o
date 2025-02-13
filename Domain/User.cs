@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,5 +13,9 @@ namespace Domain
         public string? PasswordHash { get; set; }
         public string Role { get; set; } = "User";
         public string DisplayName { get; set; } = String.Empty;
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        [Required]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

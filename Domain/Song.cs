@@ -18,6 +18,10 @@ namespace Domain
         public Album Album { get; set; } = null!;
         public int PositionInAlbum { get; set; } = -1;
         public ICollection<SongArtistRelation> SongArtistRelations { get; set; } = new List<SongArtistRelation>();
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        [Required]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public Song() { }
         public Song(string title, TimeSpan duration)

@@ -16,5 +16,9 @@ namespace Domain
         public string ImageLocation { get; set; } = string.Empty;
         public HashSet<Song> Songs { get; set; } = new HashSet<Song>();
         public ICollection<AlbumArtistRelation> AlbumArtistRelations { get; set; } = new List<AlbumArtistRelation>();
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        [Required]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }
