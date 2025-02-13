@@ -66,6 +66,26 @@ namespace API.Controllers
             }
         }
 
+        [HttpPost("remove-songs")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> removeSongs([FromForm] List<Guid> songIds)
+        {
+            try
+            {
+                int failures = await Mediator.Send(new RemoveSongs.Command { SongIds = songIds });
+                if (failures != 0)
+                {
+                    return BadRequest(failures.ToString() + " songs failed to be removed!");
+                }
+                return Ok("Song removed succesfully!");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
         [HttpPost("update-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
