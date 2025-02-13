@@ -59,7 +59,7 @@ builder.Services.AddMediatR(typeof(RemoveAlbumByID.Handler).Assembly);
 builder.Services.AddMediatR(typeof(UpdateAlbumByID.Handler).Assembly);
 
 builder.Services.AddMediatR(typeof(AddArtist.Handler).Assembly);
-builder.Services.AddMediatR(typeof(DeleteArtistByID.Handler).Assembly);
+builder.Services.AddMediatR(typeof(RemoveArtistByID.Handler).Assembly);
 builder.Services.AddMediatR(typeof(UpdateArtistByID.Handler).Assembly);
 
 builder.Services.AddMediatR(typeof(AddSong.Handler).Assembly);
