@@ -13,13 +13,14 @@ using Application.Songs;
 using Application.DataTransferObjects.Requests;
 using Application.DataTransferObjects.Responses;
 using Application.Mappers;
+using Application;
 
 namespace API.Controllers
 {
     [Route("album/")]
     public class AlbumController : BaseController
     {
-        private async Task<String> AddImage(IFormFile file, string name)
+        private async Task<string> AddImage(IFormFile file, string name)
         {
             string imagePath;
             try
@@ -36,7 +37,7 @@ namespace API.Controllers
                 throw;
             }
 
-            return Path.Combine("/album", name, ".jpg");
+            return Path.Combine("album", name + ".jpg");
         }
 
         private async Task<Artist> GetOrCreateArtist
@@ -238,17 +239,19 @@ namespace API.Controllers
         [HttpPost("add-album")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> addAlbum(string name, IFormFile? file, List<Guid>? artistsIds)
+        public async Task<IActionResult> addAlbum(
+            [FromForm] AddAlbumRequest request
+        )
         {
             Guid id = Guid.NewGuid();
-            string? imagePath = null;
+            string? imagePath = "";
             string errorMessage = "";
 
-            if (file != null)
+            if (request.FormFile != null)
             {
                 try
                 {
-                    imagePath = await AddImage(file, id.ToString());
+                    imagePath = await AddImage(request.FormFile, id.ToString());
                 }
                 catch (Exception ex)
                 {
@@ -260,17 +263,17 @@ namespace API.Controllers
             {
                 Id = id,
                 ImageLocation = imagePath,
-                Name = name
+                Name = request.Name
             };
 
             await Mediator.Send(new AddAlbum.Command { Album = album });
 
-            if (artistsIds != null && artistsIds.Count > 0)
+            if (request.ArtistIds != null && request.ArtistIds.Count > 0)
             {
-                int failures = await Mediator.Send(new AddArtistsToAlbum.Query { AlbumId = id, ArtistIds = artistsIds });
+                int failures = await Mediator.Send(new AddArtistsToAlbum.Query { AlbumId = id, ArtistIds = request.ArtistIds });
                 if (failures != 0)
                 {
-                    errorMessage += "Out of " + artistsIds.Count.ToString() + " artists " + failures.ToString() + " could not be added!\n";
+                    errorMessage += "Out of " + request.ArtistIds.Count.ToString() + " artists " + failures.ToString() + " could not be added!\n";
                 }
             }
 
@@ -293,6 +296,40 @@ namespace API.Controllers
                 return NotFound("Album with this ID not found!");
             }
             return Ok(AlbumMapper.MapToResponse(album));
+        }
+
+        [HttpPost("remove-album")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> removeAlbum(Guid id)
+        {
+            try
+            {
+                await Mediator.Send(new RemoveAlbumByID.Command { Id = id });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+
+            return Ok("Album removed successfully!");
+        }
+
+        [HttpPost("update-album")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> updateAlbum([FromForm] UpdateAlbumRequest request)
+        {
+            try
+            {
+                await Mediator.Send(new UpdateAlbumByID.Query { Id = request.Id, Name = request.Name, File = request.FormFile, ArtistIds = request.ArtistIds, ImageFolderPath = ImageFolderPath });
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
     }
 }

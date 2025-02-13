@@ -17,6 +17,7 @@ namespace Application.Albums
         {
             public Guid AlbumId { get; set; }
             public List<Guid> SongIds { get; set; } = new List<Guid>();
+            public bool Replace { get; set; } = false;
         }
 
         public class Handler : IRequestHandler<Query, int>
@@ -36,23 +37,29 @@ namespace Application.Albums
                     throw new Exception("Album does not exist!");
                 }
 
-                var albumSongs = new List<Song>();
-                foreach (Guid songId in query.SongIds)
+                var albumSongs = await _context.Songs
+                    .Where(s => query.SongIds.Contains(s.Id) && s.AlbumId == null)
+                    .ToListAsync(cancellationToken);
+
+                foreach (Song song in albumSongs)
                 {
-                    var song = await _context.Songs
-                        .FirstOrDefaultAsync(s => s.Id == songId && s.AlbumId == null, cancellationToken);
-
-                    if (song != null)
-                    {
-                        song.AlbumId = query.AlbumId;
-                        albumSongs.Add(song);
-                    }
-
+                    song.AlbumId = query.AlbumId;
                 }
 
                 if (albumSongs.Count > 0)
                 {
-                    _context.Songs.UpdateRange(albumSongs);
+                    if (query.Replace)
+                    {
+                        var existingSongs = await _context.Songs
+                            .Where(s => s.AlbumId == query.AlbumId)
+                            .ToListAsync(cancellationToken);
+                        _context.Songs.RemoveRange(existingSongs);
+                        _context.Songs.AddRange(albumSongs);
+                    }
+                    else
+                    {
+                        _context.Songs.UpdateRange(albumSongs);
+                    }
                     await _context.SaveChangesAsync(cancellationToken);
                 }
 
