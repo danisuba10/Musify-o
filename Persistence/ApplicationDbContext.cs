@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Domain;
+using Microsoft.EntityFrameworkCore.Design;
 
 namespace Persistence
 {
@@ -18,6 +19,51 @@ namespace Persistence
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
+        }
+
+        public override int SaveChanges()
+        {
+            UpdateTimeStamps();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            UpdateTimeStamps();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void UpdateTimeStamps()
+        {
+            var timeStampedEntities = new HashSet<Type>
+            {
+                typeof(Artist),
+                typeof(Album),
+                typeof(Song),
+                typeof(User),
+            };
+
+            var entries = ChangeTracker.Entries()
+                .Where(e => timeStampedEntities.Contains(e.Entity.GetType()) && (e.State == EntityState.Added || e.State == EntityState.Modified));
+
+            foreach (var entry in entries)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    SetPropertyValue(entry.Entity, "CreatedAt", DateTime.UtcNow);
+                }
+
+                SetPropertyValue(entry.Entity, "UpdatedAt", DateTime.UtcNow);
+            }
+        }
+
+        private void SetPropertyValue(object entity, string propertyName, object value)
+        {
+            var property = entity.GetType().GetProperty(propertyName);
+            if (property != null && property.CanWrite)
+            {
+                property.SetValue(entity, value);
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -162,4 +208,15 @@ namespace Persistence
             );
         }
     }
+
+    // public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
+    // {
+    //     public ApplicationDbContext CreateDbContext(string[] args)
+    //     {
+    //         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+    //         optionsBuilder.UseMySql("your connection string", new MySqlServerVersion(new Version(8, 0)));
+
+    //         return new ApplicationDbContext(optionsBuilder.Options);
+    //     }
+    // }
 }
