@@ -11,6 +11,7 @@ using Application.DataTransferObjects.Responses;
 using Application.Mappers;
 using Microsoft.AspNetCore.Http;
 using System.Threading;
+using Application.DataTransferObjects.Requests;
 
 namespace API.Controllers
 {
@@ -34,7 +35,7 @@ namespace API.Controllers
                 throw;
             }
 
-            return Path.Combine("/artist", name);
+            return Path.Combine("/artist", name + ".jpg");
         }
 
         [HttpPost("GetArtistByName")]
@@ -120,7 +121,7 @@ namespace API.Controllers
             Guid id = Guid.NewGuid();
 
             IActionResult imageUploadResult = null;
-            string? imagePath = null;
+            string? imagePath = "";
             string? errorMessage = null;
 
             if (formFile != null)
@@ -149,7 +150,7 @@ namespace API.Controllers
                 return BadRequest("Artist created, but failed to upload image.\n" + errorMessage);
             }
 
-            return Ok(new { Id = id, Message = "Artist and image added successfully!" });
+            return Ok(new { Id = id, Message = "Artist added successfully!" });
         }
 
         [HttpGet("{id}")]
@@ -163,6 +164,40 @@ namespace API.Controllers
                 return NotFound("Artist with this ID not found!");
             }
             return Ok(ArtistMapper.MapToResponse(artist));
+        }
+
+        [HttpPost("remove-artist")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> removeArtist(Guid id)
+        {
+            try
+            {
+                await Mediator.Send(new RemoveArtistByID.Command { Id = id });
+                return Ok("Artist successfully removed!");
+            }
+            catch (Exception e)
+            {
+                return NotFound(e.Message);
+            }
+        }
+
+        [HttpPost("update-artist")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> updateArtist([FromForm] UpdateArtistRequest request)
+        {
+            try
+            {
+                await Mediator.Send(new UpdateArtistByID.Command
+                { Id = request.Id, File = request.FormFile, Name = request.Name, ImageFolderPath = ImageFolderPath });
+                return Ok("Artist succesfully modified!");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
     }
 }
