@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Application.Search
+namespace Application.DataTransferObjects
 {
-    public class SearchResultResponse
+    public class SearchResult
     {
         public required string Type { get; set; }
         public required Guid Id { get; set; }

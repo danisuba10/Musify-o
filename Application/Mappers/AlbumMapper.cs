@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.DataTransferObjects;
 using Application.DataTransferObjects.Responses;
 using AutoMapper.Configuration.Conventions;
 using Domain;
@@ -32,6 +33,22 @@ namespace Application.Mappers
         public static List<AlbumResponse> MapToResponseList(List<Album> albums)
         {
             return albums.Select(MapToResponse).ToList();
+        }
+
+        public static SearchResult MapToSearchResult(Album album)
+        {
+            return new SearchResult
+            {
+                Id = album.Id,
+                Name = album.Name,
+                Type = "Album",
+                ImageLocation = album.ImageLocation
+            };
+        }
+
+        public static List<SearchResult> MapToSearchResultList(List<Album> albums)
+        {
+            return albums.Select(MapToSearchResult).ToList();
         }
     }
 }
