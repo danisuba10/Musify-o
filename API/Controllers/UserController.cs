@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
+    [Route("user")]
     public class UserController : BaseController
     {
         [HttpPost("register")]
@@ -52,14 +53,8 @@ namespace API.Controllers
 
             try
             {
-                if (await Mediator.Send(new LoginUser.Command { UserName = userName, Password = password }))
-                {
-                    return Ok();
-                }
-                else
-                {
-                    return BadRequest("Incorrect password!");
-                }
+                string token = await Mediator.Send(new LoginUser.Command { UserName = userName, Password = password });
+                return Ok(token);
             }
             catch (Exception ex)
             {
@@ -67,6 +62,5 @@ namespace API.Controllers
             }
 
         }
-
     }
 }
