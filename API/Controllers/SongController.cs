@@ -9,6 +9,7 @@ using Application.DataTransferObjects.Responses;
 using Application.Mappers;
 using Application.Songs;
 using Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -34,6 +35,7 @@ namespace API.Controllers
             return songResponses;
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("add-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -50,6 +52,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("remove-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -66,6 +69,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("remove-songs")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -86,6 +90,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("update-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

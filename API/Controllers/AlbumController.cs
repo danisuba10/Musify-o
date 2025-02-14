@@ -14,6 +14,7 @@ using Application.DataTransferObjects.Requests;
 using Application.DataTransferObjects.Responses;
 using Application.Mappers;
 using Application;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
@@ -236,6 +237,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("add-album")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -298,6 +300,7 @@ namespace API.Controllers
             return Ok(AlbumMapper.MapToResponse(album));
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("remove-album")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -315,6 +318,7 @@ namespace API.Controllers
             return Ok("Album removed successfully!");
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("update-album")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

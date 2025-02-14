@@ -1,10 +1,12 @@
 using Application.Images;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
     public class ImageController : BaseController
     {
+        [Authorize(Policy = "Admin")]
         [HttpPost("uploadImage")]
         public async Task<IActionResult> uploadImage(string fileName, string path, IFormFile file, CancellationToken cancellationToken)
         {

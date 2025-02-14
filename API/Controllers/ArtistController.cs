@@ -12,6 +12,7 @@ using Application.Mappers;
 using Microsoft.AspNetCore.Http;
 using System.Threading;
 using Application.DataTransferObjects.Requests;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
@@ -87,7 +88,7 @@ namespace API.Controllers
         [HttpPost("AddArtistImage")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> AddAlbumImage(Guid ArtistID, IFormFile formFile, CancellationToken cancellationToken)
+        public async Task<IActionResult> addArtistImage(Guid ArtistID, IFormFile formFile, CancellationToken cancellationToken)
         {
             var album = await Mediator.Send(new GetArtist.Query { Id = ArtistID });
             if (album != null)
@@ -113,6 +114,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("add-artist")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -166,6 +168,7 @@ namespace API.Controllers
             return Ok(ArtistMapper.MapToResponse(artist));
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("remove-artist")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -182,6 +185,7 @@ namespace API.Controllers
             }
         }
 
+        [Authorize(Policy = "Admin")]
         [HttpPost("update-artist")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
