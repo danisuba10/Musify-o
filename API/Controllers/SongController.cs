@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Application.Albums;
 using Application.Artists;
+using Application.DataTransferObjects;
 using Application.DataTransferObjects.Requests;
 using Application.DataTransferObjects.Responses;
 using Application.Mappers;
@@ -108,6 +109,27 @@ namespace API.Controllers
                         AlbumID = request.AlbumId
                     });
                 return Ok("Song updated successfully!");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpPost("search")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> searchSong([FromForm] SearchRequest request)
+        {
+            try
+            {
+                List<Song> songs = await Mediator.Send(new SearchSong.Query { Request = request });
+                List<SearchResult> results = SongMapper.MapToSearchResultList(songs);
+                return Ok(new SearchResponse
+                {
+                    SearchResults = results,
+                    LastCreatedAt = songs.Last().CreatedAt,
+                    LastName = songs.Last().Title
+                });
             }
             catch (Exception e)
             {
