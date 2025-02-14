@@ -15,10 +15,27 @@ using System.Text.Json.Serialization;
 using Application.Images;
 using Microsoft.EntityFrameworkCore.Design;
 using DotNetEnv;
+using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Application.Services;
 
 Env.Load("../.env");
 
 var builder = WebApplication.CreateBuilder(args);
+
+var jwtSettings = new
+{
+    Secret = Environment.GetEnvironmentVariable("Jwt_Secret"),
+    Issuer = Environment.GetEnvironmentVariable("Jwt_Issuer"),
+    Audience = Environment.GetEnvironmentVariable("Jwt_Audience")
+};
+
+Console.WriteLine("JWT Secret: " + jwtSettings.Secret);
+Console.WriteLine("JWT Issuer: " + jwtSettings.Issuer);
+Console.WriteLine("JWT Audience: " + jwtSettings.Audience);
 
 // Add services to the container.
 
@@ -30,9 +47,36 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
     });
 
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Musify API", Version = "v1" });
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "Bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Enter 'Bearer' [space] and then your token in the text input below."
+        });
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    });
 
 var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__WebApiDatabase");
 // var connectionString = Environment.GetEnvironmentVariable("CON");
@@ -47,9 +91,15 @@ if (string.IsNullOrEmpty(connectionString))
 
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0)), options => options.EnableRetryOnFailure(maxRetryCount: 10, maxRetryDelay: System.TimeSpan.FromSeconds(30), errorNumbersToAdd: null)));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0)), options =>
+    options.EnableRetryOnFailure
+    (maxRetryCount: 3,
+    maxRetryDelay: System.TimeSpan.FromSeconds(5),
+    errorNumbersToAdd: null)
+    ));
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<JwtTokenService>();
 
 builder.Services.AddMediatR(typeof(AddAlbum.Handler).Assembly);
 builder.Services.AddMediatR(typeof(AddSongsToAlbum.Handler).Assembly);
@@ -70,7 +120,7 @@ builder.Services.AddMediatR(typeof(SearchSongs.Handler).Assembly);
 builder.Services.AddMediatR(typeof(UpdateSongByID.Handler).Assembly);
 
 builder.Services.AddMediatR(typeof(GetAllUsers.Handler).Assembly);
-builder.Services.AddMediatR(typeof(GetUserByUserName.Handler).Assembly);
+builder.Services.AddMediatR(typeof(GetUserByEmail.Handler).Assembly);
 builder.Services.AddMediatR(typeof(LoginUser.Handler).Assembly);
 builder.Services.AddMediatR(typeof(RegisterUser.Handler).Assembly);
 
@@ -84,7 +134,29 @@ builder.Services.AddAutoMapper(typeof(SongMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(ArtistMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(UserMappingProfile).Assembly);
 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "JwtBearer";
+    options.DefaultAuthenticateScheme = "JwtBearer";
+}).AddJwtBearer("JwtBearer", options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+});
 
 var app = builder.Build();
 
@@ -97,6 +169,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker") |
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
