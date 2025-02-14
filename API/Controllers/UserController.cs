@@ -27,14 +27,14 @@ namespace API.Controllers
 
             try
             {
-                await Mediator.Send(new RegisterUser.Command { UserName = userName, Password = password });
+                string token = await Mediator.Send(new RegisterUser.Command { UserName = userName, Password = password });
+                return Ok(token);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
 
-            return Ok();
         }
 
         [HttpPost("login")]
