@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Application.Search
 {
-    public class SearchResult
+    public class SearchResultResponse
     {
         public required string Type { get; set; }
         public required Guid Id { get; set; }
