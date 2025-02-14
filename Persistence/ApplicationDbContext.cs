@@ -127,6 +127,30 @@ namespace Persistence
                 .HasIndex(s => s.AlbumId)
                 .HasDatabaseName("IX_Song_AlbumId");
 
+            modelBuilder.Entity<Album>()
+        .HasIndex(album => album.CreatedAt)
+        .HasDatabaseName("IX_Album_CreatedAt");
+
+            modelBuilder.Entity<Album>()
+                .HasIndex(album => album.UpdatedAt)
+                .HasDatabaseName("IX_Album_UpdatedAt");
+
+            modelBuilder.Entity<Artist>()
+                .HasIndex(artist => artist.CreatedAt)
+                .HasDatabaseName("IX_Artist_CreatedAt");
+
+            modelBuilder.Entity<Artist>()
+                .HasIndex(artist => artist.UpdatedAt)
+                .HasDatabaseName("IX_Artist_UpdatedAt");
+
+            modelBuilder.Entity<Song>()
+                .HasIndex(song => song.CreatedAt)
+                .HasDatabaseName("IX_Song_CreatedAt");
+
+            modelBuilder.Entity<Song>()
+                .HasIndex(song => song.UpdatedAt)
+                .HasDatabaseName("IX_Song_UpdatedAt");
+
             //One to many relation between Album and Song
             modelBuilder.Entity<Song>()
                 .HasOne(song => song.Album)
