@@ -7,31 +7,40 @@ using Persistence;
 using Microsoft.AspNetCore.Identity;
 using Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
+using Application.Services;
 
 namespace Application.Users
 {
     public class LoginUser
     {
-        public class Command : IRequest<bool>
+        public class Command : IRequest<string>
         {
             public required string UserName { get; set; }
             public required string Password { get; set; }
         }
 
-        public class Handler : IRequestHandler<Command, bool>
+        public class Handler : IRequestHandler<Command, string>
         {
             private readonly ApplicationDbContext _context;
             private readonly IMediator _mediator;
             private readonly IPasswordHasher<User> _passwordHasher;
-            public Handler(ApplicationDbContext context, IMediator mediator, IPasswordHasher<User> passwordHasher)
+            private readonly IConfiguration _config;
+            private readonly JwtTokenService _jwtTokenService;
+            public Handler(ApplicationDbContext context, IMediator mediator, IPasswordHasher<User> passwordHasher, IConfiguration config, JwtTokenService jwtTokenService)
             {
                 _context = context;
                 _mediator = mediator;
                 _passwordHasher = passwordHasher;
+                _config = config;
+                _jwtTokenService = jwtTokenService;
             }
-            public async Task<bool> Handle(Command command, CancellationToken cancellationToken)
+            public async Task<string> Handle(Command command, CancellationToken cancellationToken)
             {
-                var ExistingUser = await _mediator.Send(new GetUserByUserName.Query { UserName = command.UserName });
+                var ExistingUser = await _mediator.Send(new GetUserByEmail.Query { Email = command.UserName });
 
                 if (ExistingUser == null)
                 {
@@ -42,11 +51,11 @@ namespace Application.Users
 
                 if (passwordVerificationResult == PasswordVerificationResult.Failed)
                 {
-                    return false;
+                    throw new Exception("Invalid credentials!");
                 }
 
-                return true;
-
+                var token = _jwtTokenService.GenerateJwtToken(ExistingUser);
+                return token;
             }
         }
     }
