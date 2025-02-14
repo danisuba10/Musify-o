@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using Application.Albums;
 using Domain;
 using System.Runtime.CompilerServices;
+using Application.Users;
+using Application.DataTransferObjects.Requests;
 
 namespace API.Controllers
 {
+    [Route("dev")]
     public class DevelopmentController : BaseController
     {
         [HttpPost("DeleteAllDataFromMusicTables")]
@@ -29,6 +32,20 @@ namespace API.Controllers
             List<Album>? albums = await Mediator.Send(new SearchAlbums.Query { Name = "Trip", Songs = songs, IncludeSongs = true });
             int a = 0;
             return Ok();
+        }
+
+        [HttpPost("make-admin")]
+        public async Task<IActionResult> makeAdmin(Guid id)
+        {
+            try
+            {
+                await Mediator.Send(new UpdateUserByID.Query { Request = new UpdateUserRequest { Id = id, Role = "Admin" } });
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
     }
 }
