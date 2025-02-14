@@ -213,29 +213,29 @@ namespace API.Controllers
         //     var song = await Mediator.Send(new GetSong.Query { Id = SongID, ExtendedQuery = false });
         // }
 
-        [HttpPost("/search")]
-        public async Task<List<AlbumResponse>> search([FromBody] AlbumSearchRequest request)
-        {
-            var query = new SearchAlbums.Query
-            {
-                Name = request.Name,
-                Artists = request.Artists,
-                Songs = request.Songs,
-                IncludeSongs = request.IncludeSongs,
-                IncludeArtists = request.IncludeArtists,
-                AllArtistsPresent = request.AllArtistsPresent
-            };
+        // [HttpPost("/search")]
+        // public async Task<List<AlbumResponse>> search([FromBody] AlbumSearchRequest request)
+        // {
+        //     var query = new SearchAlbums.Query
+        //     {
+        //         Name = request.Name,
+        //         Artists = request.Artists,
+        //         Songs = request.Songs,
+        //         IncludeSongs = request.IncludeSongs,
+        //         IncludeArtists = request.IncludeArtists,
+        //         AllArtistsPresent = request.AllArtistsPresent
+        //     };
 
-            var albums = await Mediator.Send(query);
-            if (albums != null)
-            {
-                return AlbumMapper.MapToResponseList(albums);
-            }
-            else
-            {
-                return new List<AlbumResponse>();
-            }
-        }
+        //     var albums = await Mediator.Send(query);
+        //     if (albums != null)
+        //     {
+        //         return AlbumMapper.MapToResponseList(albums);
+        //     }
+        //     else
+        //     {
+        //         return new List<AlbumResponse>();
+        //     }
+        // }
 
         [Authorize(Policy = "Admin")]
         [HttpPost("add-album")]
@@ -329,6 +329,27 @@ namespace API.Controllers
             {
                 await Mediator.Send(new UpdateAlbumByID.Query { Id = request.Id, Name = request.Name, File = request.FormFile, ArtistIds = request.ArtistIds, ImageFolderPath = ImageFolderPath });
                 return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpPost("search")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> searchAlbum([FromForm] SearchRequest request)
+        {
+            try
+            {
+                List<Album> albums = await Mediator.Send(new SearchAlbum.Query { Request = request });
+                List<SearchResult> results = AlbumMapper.MapToSearchResultList(albums);
+                return Ok(new SearchResponse
+                {
+                    SearchResults = results,
+                    LastCreatedAt = albums.Last().CreatedAt,
+                    LastName = albums.Last().Name
+                });
             }
             catch (Exception e)
             {

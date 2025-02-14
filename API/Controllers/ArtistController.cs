@@ -117,6 +117,7 @@ namespace API.Controllers
         [Authorize(Policy = "Admin")]
         [HttpPost("add-artist")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> addArtist(string name, IFormFile? formFile, CancellationToken cancellationToken)
         {
@@ -157,6 +158,7 @@ namespace API.Controllers
 
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ArtistResponse))]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> getArtistById(Guid id)
         {
@@ -171,6 +173,7 @@ namespace API.Controllers
         [Authorize(Policy = "Admin")]
         [HttpPost("remove-artist")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> removeArtist(Guid id)
         {
@@ -189,6 +192,7 @@ namespace API.Controllers
         [HttpPost("update-artist")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> updateArtist([FromForm] UpdateArtistRequest request)
         {
@@ -197,6 +201,28 @@ namespace API.Controllers
                 await Mediator.Send(new UpdateArtistByID.Command
                 { Id = request.Id, File = request.FormFile, Name = request.Name, ImageFolderPath = ImageFolderPath });
                 return Ok("Artist succesfully modified!");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpPost("search-artist")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> searchArtist([FromForm] SearchRequest request)
+        {
+            try
+            {
+                List<Artist> result = await Mediator.Send(new SearchArtist.Query { Request = request });
+                List<SearchResult> artists = ArtistMapper.MapToSearchResultList(result);
+                return Ok(new SearchResponse
+                {
+                    SearchResults = artists,
+                    LastName = result.Last().Name,
+                    LastCreatedAt = result.Last().CreatedAt
+                });
             }
             catch (Exception e)
             {
