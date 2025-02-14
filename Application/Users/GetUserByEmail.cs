@@ -10,11 +10,11 @@ using Persistence;
 
 namespace Application.Users
 {
-    public class GetUserByUserName
+    public class GetUserByEmail
     {
         public class Query : IRequest<User>
         {
-            public required string UserName { get; set; }
+            public required string Email { get; set; }
         }
 
         public class Handler : IRequestHandler<Query, User?>
@@ -27,7 +27,7 @@ namespace Application.Users
             public async Task<User?> Handle(Query query, CancellationToken cancellationToken)
             {
                 var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.UserName == query.UserName, cancellationToken);
+                    .FirstOrDefaultAsync(u => u.Email == query.Email, cancellationToken);
 
                 if (user == null)
                 {
