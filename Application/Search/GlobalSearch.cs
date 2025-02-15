@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.DataTransferObjects;
 using Application.DataTransferObjects.Responses;
 using Application.Mappers;
 using MediatR;
