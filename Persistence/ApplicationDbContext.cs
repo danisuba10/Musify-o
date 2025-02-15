@@ -14,6 +14,7 @@ namespace Persistence
         public DbSet<Album> Albums { get; set; }
         public DbSet<Artist> Artists { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<ImageAccent> ImageAccents { get; set; }
         public DbSet<SongArtistRelation> SongArtistRelations { get; set; }
         public DbSet<AlbumArtistRelation> AlbumArtistRelations { get; set; }
 
@@ -69,6 +70,9 @@ namespace Persistence
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<ImageAccent>()
+                .HasKey(i => i.ImagePath);
 
             modelBuilder.Entity<Artist>().ToTable("Artists");
 
@@ -184,63 +188,6 @@ namespace Persistence
                 .HasOne(aar => aar.Artist)
                 .WithMany(artist => artist.AlbumArtistRelations)
                 .HasForeignKey(aar => aar.ArtistId);
-
-            // GUIDs for Albums
-            var album1Id = Guid.NewGuid();
-            var album2Id = Guid.NewGuid();
-
-            // GUIDs for Artists
-            var artist1Id = Guid.NewGuid();
-            var artist2Id = Guid.NewGuid();
-
-            // GUIDs for Songs
-            var song1Id = Guid.NewGuid();
-            var song2Id = Guid.NewGuid();
-            var song3Id = Guid.NewGuid();
-
-            // Seed Data for Albums
-            modelBuilder.Entity<Album>().HasData(
-                new Album { Id = album1Id, Name = "First Album", ImageLocation = "path/to/image1" },
-                new Album { Id = album2Id, Name = "Second Album", ImageLocation = "path/to/image2" }
-            );
-
-            // Seed Data for Artists
-            modelBuilder.Entity<Artist>().HasData(
-                new Artist { Id = artist1Id, Name = "First Artist", ImageLocation = "path/to/image1" },
-                new Artist { Id = artist2Id, Name = "Second Artist", ImageLocation = "path/to/image2" }
-            );
-
-            // Seed Data for Songs
-            modelBuilder.Entity<Song>().HasData(
-                new Song { Id = song1Id, Title = "First Song", Duration = new TimeSpan(0, 3, 45), AlbumId = album1Id },
-                new Song { Id = song2Id, Title = "Second Song", Duration = new TimeSpan(0, 4, 20), AlbumId = album1Id },
-                new Song { Id = song3Id, Title = "Third Song", Duration = new TimeSpan(0, 5, 0), AlbumId = album2Id }
-            );
-
-            // Seed Data for SongArtistRelation
-            modelBuilder.Entity<SongArtistRelation>().HasData(
-                new SongArtistRelation { SongId = song1Id, ArtistId = artist1Id },
-                new SongArtistRelation { SongId = song2Id, ArtistId = artist1Id },
-                new SongArtistRelation { SongId = song3Id, ArtistId = artist2Id }
-            );
-
-            // Seed Data for AlbumArtistRelation
-            modelBuilder.Entity<AlbumArtistRelation>().HasData(
-                new AlbumArtistRelation { AlbumId = album1Id, ArtistId = artist1Id },
-                new AlbumArtistRelation { AlbumId = album1Id, ArtistId = artist2Id },
-                new AlbumArtistRelation { AlbumId = album2Id, ArtistId = artist2Id }
-            );
         }
     }
-
-    // public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
-    // {
-    //     public ApplicationDbContext CreateDbContext(string[] args)
-    //     {
-    //         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-    //         optionsBuilder.UseMySql("your connection string", new MySqlServerVersion(new Version(8, 0)));
-
-    //         return new ApplicationDbContext(optionsBuilder.Options);
-    //     }
-    // }
 }
