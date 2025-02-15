@@ -8,6 +8,7 @@ namespace Application.DataTransferObjects.Responses
     public class ArtistResponse
     {
         public Guid? Id { get; set; } = null;
-        public String Name { get; set; } = "";
+        public string ImageLocation { get; set; } = "";
+        public string Name { get; set; } = "";
     }
 }

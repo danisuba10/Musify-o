@@ -119,7 +119,7 @@ namespace API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> addArtist(string name, IFormFile? formFile, CancellationToken cancellationToken)
+        public async Task<IActionResult> addArtist([FromForm] AddArtistRequest request, CancellationToken cancellationToken)
         {
             Guid id = Guid.NewGuid();
 
@@ -127,11 +127,11 @@ namespace API.Controllers
             string? imagePath = "";
             string? errorMessage = null;
 
-            if (formFile != null)
+            if (request.FormFile != null)
             {
                 try
                 {
-                    imagePath = await AddImage(formFile, id.ToString());
+                    imagePath = await AddImage(request.FormFile, id.ToString());
                 }
                 catch (Exception ex)
                 {
@@ -141,14 +141,14 @@ namespace API.Controllers
 
             Artist artist = new Artist
             {
-                Name = name,
+                Name = request.Name,
                 Id = id,
                 ImageLocation = imagePath
             };
 
             await Mediator.Send(new AddArtist.Command { Artist = artist });
 
-            if (formFile != null && imageUploadResult is BadRequestObjectResult)
+            if (request.FormFile != null && imageUploadResult is BadRequestObjectResult)
             {
                 return BadRequest("Artist created, but failed to upload image.\n" + errorMessage);
             }
