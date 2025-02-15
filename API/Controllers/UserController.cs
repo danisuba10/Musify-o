@@ -38,7 +38,7 @@ namespace API.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> LoginUser(string userName, string password, CancellationToken cancellationToken)
+        public async Task<IActionResult> LoginUser([FromForm] string userName, [FromForm] string password, CancellationToken cancellationToken)
         {
 
             if (userName == null)
