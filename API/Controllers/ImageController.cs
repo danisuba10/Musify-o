@@ -7,7 +7,7 @@ namespace API.Controllers
     public class ImageController : BaseController
     {
         [Authorize(Policy = "Admin")]
-        [HttpPost("uploadImage")]
+        [HttpPost("upload-image")]
         public async Task<IActionResult> uploadImage(string fileName, string path, IFormFile file, CancellationToken cancellationToken)
         {
             try
@@ -41,6 +41,23 @@ namespace API.Controllers
             var image = await System.IO.File.ReadAllBytesAsync(imagePath);
             return File(image, "image/jpeg");
 
+        }
+
+        [Authorize(Policy = "Admin")]
+        [HttpPost("remove-image")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> removeImage([FromForm] string path)
+        {
+            try
+            {
+                await Mediator.Send(new DeleteImage.Command { Path = Path.Combine(ImageFolderPath, path) });
+                return Ok("Image removed successfully!");
+            }
+            catch (Exception e)
+            {
+                return NotFound(e.Message);
+            }
         }
     }
 }
