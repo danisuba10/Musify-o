@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
+    [Route("image/")]
     public class ImageController : BaseController
     {
         [Authorize(Policy = "Admin")]
@@ -27,10 +28,15 @@ namespace API.Controllers
             }
         }
 
-        [HttpGet("image/{path}")]
+        [HttpGet("{path}")]
         public async Task<IActionResult> getImage(string path)
         {
             string decodedPath = Uri.UnescapeDataString(path);
+            if (decodedPath.StartsWith("/artist") || decodedPath.StartsWith("/album"))
+            {
+                decodedPath = decodedPath.Substring(1);
+            }
+
             string imagePath = Path.Combine(ImageFolderPath, decodedPath);
 
             if (!System.IO.File.Exists(imagePath))
