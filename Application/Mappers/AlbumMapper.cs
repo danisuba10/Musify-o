@@ -17,16 +17,24 @@ namespace Application.Mappers
             {
                 Id = album.Id,
                 Name = album.Name,
-                Songs = album.Songs.ToList(),
-                Artists = album.AlbumArtistRelations.Select(aar => aar.Artist).ToList(),
-                ArtistIds = new List<Guid>()
+                Year = album.ReleaseYear,
+                ImageLocation = album.ImageLocation
             };
 
-            foreach (var relation in album.AlbumArtistRelations)
-            {
-                response.ArtistIds.Add(relation.ArtistId);
-            }
-
+            response.ArtistIds = album.AlbumArtistRelations
+                .Select(relation => relation.ArtistId)
+                .ToList();
+            response.SongIds = album.Songs
+                .Select(song => song.Id)
+                .ToList();
+            response.Artists = ArtistMapper.MapToResponseList(
+                album.AlbumArtistRelations
+                    .Select(aar => aar.Artist)
+                    .ToList()
+            );
+            response.Songs = SongMapper.MapToResponseList(
+                album.Songs.ToList()
+            );
             return response;
         }
 

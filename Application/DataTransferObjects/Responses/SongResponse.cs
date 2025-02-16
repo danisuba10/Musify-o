@@ -9,13 +9,13 @@ namespace Application.DataTransferObjects.Responses
 {
     public class SongResponse
     {
-        public Guid? Id = null;
+        public Guid? Id { get; set; } = null;
         public String Title { get; set; } = "";
-        public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(0);
-        public Guid? AlbumId { get; set; } = null;
-        public Album Album { get; set; } = null!;
+        public int Duration { get; set; } = 0;
         public int PositionInAlbum { get; set; } = -1;
-        public List<ArtistResponse> Artists { get; set; } = new List<ArtistResponse>();
+        public Guid AlbumId { get; set; }
         public List<Guid> ArtistIds { get; set; } = new List<Guid>();
+        public List<ArtistResponse>? Artists { get; set; } = new List<ArtistResponse>();
+
     }
 }

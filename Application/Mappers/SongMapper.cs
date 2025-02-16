@@ -11,32 +11,33 @@ namespace Application.Mappers
 {
     public class SongMapper
     {
-        public static SongResponse MapToResponse(Song song)
+        public static SongResponse MapToResponse(Song song, bool includeArtists = false)
         {
             SongResponse response = new SongResponse
             {
                 Id = song.Id,
                 Title = song.Title,
-                Duration = song.Duration,
-                AlbumId = song.AlbumId,
-                Album = song.Album,
+                Duration = (int)song.Duration.TotalSeconds,
+                AlbumId = (Guid)song.AlbumId,
                 PositionInAlbum = song.PositionInAlbum,
             };
 
             List<Artist> artists = song.SongArtistRelations.Select(ar => ar.Artist).ToList();
-            response.Artists = ArtistMapper.MapToResponseList(artists);
 
-            foreach (Artist artist in artists)
+            if (includeArtists)
             {
-                response.ArtistIds.Add(artist.Id);
+                response.Artists = ArtistMapper.MapToResponseList(artists);
             }
+
+            List<Guid> artistIds = [.. artists.Select(artist => artist.Id)];
+            response.ArtistIds = artistIds;
 
             return response;
         }
 
-        public static List<SongResponse> MapToResponseList(List<Song> songs)
+        public static List<SongResponse> MapToResponseList(List<Song> songs, bool includeArtists = false)
         {
-            return songs.Select(MapToResponse).ToList();
+            return songs.Select(song => MapToResponse(song, includeArtists)).ToList();
         }
 
         public static SearchResult MapToSearchResult(Song song)
