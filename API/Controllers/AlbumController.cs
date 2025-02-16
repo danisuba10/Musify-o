@@ -264,6 +264,7 @@ namespace API.Controllers
             Album album = new Album
             {
                 Id = id,
+                ReleaseYear = request.Year,
                 ImageLocation = imagePath,
                 Name = request.Name
             };
@@ -287,12 +288,12 @@ namespace API.Controllers
             return Ok(new { Id = id, Message = "Album added successfully!" });
         }
 
-        [HttpGet("/{id}")]
+        [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AlbumResponse))]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> getAlbumById(Guid id)
         {
-            Album? album = await Mediator.Send(new GetAlbumByID.Query { Id = id });
+            Album? album = await Mediator.Send(new GetAlbumByID.Query { Id = id, IncludeArtists = true, IncludeSongs = true });
             if (album == null)
             {
                 return NotFound("Album with this ID not found!");
