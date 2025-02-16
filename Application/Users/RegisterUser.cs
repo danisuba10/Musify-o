@@ -9,6 +9,7 @@ using Persistence;
 using Microsoft.AspNetCore.Identity;
 using System.Reflection.Metadata;
 using Application.Services;
+using Application.Exceptions.User;
 
 namespace Application.Users
 {
@@ -16,8 +17,9 @@ namespace Application.Users
     {
         public class Command : IRequest<string>
         {
-            public required string UserName { get; set; }
+            public required string Email { get; set; }
             public required string Password { get; set; }
+            public required string DisplayName { get; set; }
         }
         public class Handler : IRequestHandler<Command, string>
         {
@@ -34,14 +36,14 @@ namespace Application.Users
             }
             public async Task<string> Handle(Command command, CancellationToken cancellationToken)
             {
-                var ExistingUser = await _mediator.Send(new GetUserByEmail.Query { Email = command.UserName });
+                var ExistingUser = await _mediator.Send(new GetUserByEmail.Query { Email = command.Email });
 
                 if (ExistingUser != null)
                 {
-                    throw new Exception("User already exists!");
+                    throw new UserAlreadyExistsException();
                 }
 
-                var User = new User { Email = command.UserName };
+                var User = new User { Email = command.Email, DisplayName = command.DisplayName };
                 User.PasswordHash = _passwordHasher.HashPassword(User, command.Password);
 
                 await _context.Users.AddAsync(User, cancellationToken);

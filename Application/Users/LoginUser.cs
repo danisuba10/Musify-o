@@ -12,6 +12,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.Extensions.Configuration;
 using Application.Services;
+using Application.Exceptions.User;
 
 namespace Application.Users
 {
@@ -44,14 +45,14 @@ namespace Application.Users
 
                 if (ExistingUser == null)
                 {
-                    throw new Exception("User does not exist!");
+                    throw new UserDoesNotExistException();
                 }
 
                 var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(ExistingUser, ExistingUser.PasswordHash, command.Password);
 
                 if (passwordVerificationResult == PasswordVerificationResult.Failed)
                 {
-                    throw new Exception("Invalid credentials!");
+                    throw new IncorrectCredentialsException();
                 }
 
                 var token = _jwtTokenService.GenerateJwtToken(ExistingUser);
