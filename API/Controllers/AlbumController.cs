@@ -15,6 +15,7 @@ using Application.DataTransferObjects.Responses;
 using Application.Mappers;
 using Application;
 using Microsoft.AspNetCore.Authorization;
+using Application.ImageAccents;
 
 namespace API.Controllers
 {
@@ -294,11 +295,14 @@ namespace API.Controllers
         public async Task<IActionResult> getAlbumById(Guid id)
         {
             Album? album = await Mediator.Send(new GetAlbumByID.Query { Id = id, IncludeArtists = true, IncludeSongs = true });
+
             if (album == null)
             {
                 return NotFound("Album with this ID not found!");
             }
-            return Ok(AlbumMapper.MapToResponse(album));
+            ImageAccent? imageAccent = await Mediator.Send(new GetImageAccentByPath.Query
+            { Path = Path.Combine(ImageFolderPath, album.ImageLocation) });
+            return Ok(AlbumMapper.MapToResponse(album, imageAccent));
         }
 
         [Authorize(Policy = "Admin")]

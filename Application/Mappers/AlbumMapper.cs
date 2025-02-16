@@ -6,20 +6,28 @@ using Application.DataTransferObjects;
 using Application.DataTransferObjects.Responses;
 using AutoMapper.Configuration.Conventions;
 using Domain;
+using SixLabors.ImageSharp;
 
 namespace Application.Mappers
 {
     public class AlbumMapper
     {
-        public static AlbumResponse MapToResponse(Album album)
+        public static AlbumResponse MapToResponse(Album album, ImageAccent? imageAccent)
         {
             AlbumResponse response = new AlbumResponse
             {
                 Id = album.Id,
                 Name = album.Name,
                 Year = album.ReleaseYear,
-                ImageLocation = album.ImageLocation
+                Image = new ImageResponse { ImageLocation = album.ImageLocation }
             };
+
+            if (imageAccent != null)
+            {
+                response.Image.LowColor = imageAccent.LowAccent;
+                response.Image.MiddleColor = imageAccent.MiddleAccent;
+                response.Image.HighColor = imageAccent.HighAccent;
+            }
 
             response.ArtistIds = album.AlbumArtistRelations
                 .Select(relation => relation.ArtistId)
@@ -35,12 +43,18 @@ namespace Application.Mappers
             response.Songs = SongMapper.MapToResponseList(
                 album.Songs.ToList()
             );
+
+            response.SongCount = album.Songs.Count;
+            response.Duration = album.Songs
+                .Select(s => (int)s.Duration.TotalSeconds)
+                .Sum();
+
             return response;
         }
 
         public static List<AlbumResponse> MapToResponseList(List<Album> albums)
         {
-            return albums.Select(MapToResponse).ToList();
+            return albums.Select(album => MapToResponse(album, null)).ToList();
         }
 
         public static SearchResult MapToSearchResult(Album album)
