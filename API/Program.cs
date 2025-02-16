@@ -37,6 +37,15 @@ Console.WriteLine("JWT Secret: " + jwtSettings.Secret);
 Console.WriteLine("JWT Issuer: " + jwtSettings.Issuer);
 Console.WriteLine("JWT Audience: " + jwtSettings.Audience);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalHost", builder =>
+        builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+    );
+});
+
 // Add services to the container.
 
 //builder.Services.AddControllers();
@@ -159,6 +168,8 @@ builder.Services.AddAuthorization(options =>
 });
 
 var app = builder.Build();
+app.UseCors("AllowLocalHost");
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker") || true)
@@ -173,5 +184,4 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();
