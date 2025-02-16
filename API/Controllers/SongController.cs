@@ -44,8 +44,8 @@ namespace API.Controllers
         {
             try
             {
-                await Mediator.Send(new AddSong.Command { songRequest = request });
-                return Ok("Song added succesfully!");
+                Guid id = await Mediator.Send(new AddSong.Command { songRequest = request });
+                return Ok(new { Id = id, Message = "Artist added successfully!" });
             }
             catch (Exception e)
             {
