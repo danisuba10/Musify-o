@@ -31,6 +31,8 @@ namespace Application.Development
                 _context.SongArtistRelations.RemoveRange(SongArtistRelations);
                 var AlbumArtistRelations = _context.AlbumArtistRelations;
                 _context.AlbumArtistRelations.RemoveRange(AlbumArtistRelations);
+                var ImageAccents = _context.ImageAccents;
+                _context.ImageAccents.RemoveRange(ImageAccents);
                 await _context.SaveChangesAsync(cancellationToken);
 
                 return Unit.Value;
