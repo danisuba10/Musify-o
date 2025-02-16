@@ -11,19 +11,19 @@ namespace Application.Songs
 {
     public class AddSong
     {
-        public class Command : IRequest
+        public class Command : IRequest<Guid>
         {
             public required AddSongRequest songRequest;
         };
 
-        public class Handler : IRequestHandler<Command>
+        public class Handler : IRequestHandler<Command, Guid>
         {
             private readonly ApplicationDbContext _context;
             public Handler(ApplicationDbContext context)
             {
                 _context = context;
             }
-            public async Task<Unit> Handle(Command command, CancellationToken cancellationToken)
+            public async Task<Guid> Handle(Command command, CancellationToken cancellationToken)
             {
                 Song song = new Song
                 {
@@ -35,7 +35,7 @@ namespace Application.Songs
                 };
                 _context.Songs.Add(song);
                 await _context.SaveChangesAsync();
-                return Unit.Value;
+                return song.Id;
             }
         }
     }

@@ -11,12 +11,12 @@ namespace Application.Albums
 {
     public class AddAlbum
     {
-        public class Command : IRequest
+        public class Command : IRequest<Guid>
         {
             public required Album Album { get; set; }
         }
 
-        public class Handler : IRequestHandler<Command>
+        public class Handler : IRequestHandler<Command, Guid>
         {
             private readonly ApplicationDbContext _context;
 
@@ -25,11 +25,11 @@ namespace Application.Albums
                 _context = context;
             }
 
-            public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<Guid> Handle(Command request, CancellationToken cancellationToken)
             {
                 await _context.Albums.AddAsync(request.Album);
                 await _context.SaveChangesAsync(cancellationToken);
-                return Unit.Value;
+                return request.Album.Id;
             }
         }
     }

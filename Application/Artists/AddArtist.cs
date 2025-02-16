@@ -12,12 +12,12 @@ namespace Application.Artists
 {
     public class AddArtist
     {
-        public class Command : IRequest
+        public class Command : IRequest<Guid>
         {
             public required Artist Artist { get; set; }
         }
 
-        public class Handler : IRequestHandler<Command>
+        public class Handler : IRequestHandler<Command, Guid>
         {
             private readonly ApplicationDbContext _context;
             public Handler(ApplicationDbContext context)
@@ -25,11 +25,11 @@ namespace Application.Artists
                 _context = context;
             }
 
-            public async Task<Unit> Handle(Command command, CancellationToken cancellationToken)
+            public async Task<Guid> Handle(Command command, CancellationToken cancellationToken)
             {
                 await _context.Artists.AddAsync(command.Artist, cancellationToken);
                 await _context.SaveChangesAsync(cancellationToken);
-                return Unit.Value;
+                return command.Artist.Id;
             }
         }
     }
