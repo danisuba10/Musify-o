@@ -343,12 +343,20 @@ namespace API.Controllers
 
         [HttpPost("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> searchAlbum([FromForm] SearchRequest request)
         {
             try
             {
                 List<Album> albums = await Mediator.Send(new SearchAlbum.Query { Request = request });
                 List<SearchResult> results = AlbumMapper.MapToSearchResultList(albums);
+
+                if (albums.Count == 0)
+                {
+                    return NotFound("No results were found");
+                }
+
                 return Ok(new SearchResponse
                 {
                     SearchResults = results,

@@ -208,15 +208,22 @@ namespace API.Controllers
             }
         }
 
-        [HttpPost("search-artist")]
+        [HttpPost("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> searchArtist([FromForm] SearchRequest request)
         {
             try
             {
                 List<Artist> result = await Mediator.Send(new SearchArtist.Query { Request = request });
                 List<SearchResult> artists = ArtistMapper.MapToSearchResultList(result);
+
+                if (result.Count == 0)
+                {
+                    return NotFound("No results were found");
+                }
+
                 return Ok(new SearchResponse
                 {
                     SearchResults = artists,

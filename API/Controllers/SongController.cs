@@ -15,26 +15,27 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
-    [Route("songs/")]
+    [Route("song/")]
     public class SongController : BaseController
     {
 
-        [HttpGet("search")]
-        public async Task<List<SongResponse>> SearchSongs([FromBody] SongSearchRequest Request)
-        {
-            var query = new SearchSongs.Query
-            {
-                Title = Request.Title,
-                Artists = Request.Artists,
-                AlbumName = Request.AlbumName,
-                IncludeAlbum = Request.IncludeAlbum,
-                IncludeArtists = Request.IncludeArtists
-            };
+        // [HttpGet("search")]
+        // public async Task<List<SongResponse>> SearchSongs([FromBody] SongSearchRequest Request)
+        // {
+        //     var query = new SearchSongs.Query
+        //     {
+        //         Title = Request.Title,
+        //         Artists = Request.Artists,
+        //         AlbumName = Request.AlbumName,
+        //         IncludeAlbum = Request.IncludeAlbum,
+        //         IncludeArtists = Request.IncludeArtists
+        //     };
 
-            var songs = await Mediator.Send(query);
-            var songResponses = SongMapper.MapToResponseList(songs);
-            return songResponses;
-        }
+        //     var songs = await Mediator.Send(query);
+
+        //     var songResponses = SongMapper.MapToResponseList(songs);
+        //     return songResponses;
+        // }
 
         [Authorize(Policy = "Admin")]
         [HttpPost("add-song")]
@@ -118,12 +119,20 @@ namespace API.Controllers
 
         [HttpPost("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> searchSong([FromForm] SearchRequest request)
         {
             try
             {
                 List<Song> songs = await Mediator.Send(new SearchSong.Query { Request = request });
                 List<SearchResult> results = SongMapper.MapToSearchResultList(songs);
+
+                if (songs.Count == 0)
+                {
+                    return NotFound("No results were found");
+                }
+
                 return Ok(new SearchResponse
                 {
                     SearchResults = results,
