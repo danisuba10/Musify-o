@@ -40,7 +40,7 @@ Console.WriteLine("JWT Audience: " + jwtSettings.Audience);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocalHost", builder =>
-        builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
+        builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://192.168.0.184:5173")
             .AllowAnyHeader()
             .AllowAnyMethod()
     );
@@ -99,13 +99,21 @@ if (string.IsNullOrEmpty(connectionString))
 
 
 
+//Maybe disable StringComparisonTranslations as per documentation indexes may not trigger
+//every time
+//https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/wiki/Configuration-Options
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0)), options =>
-    options.EnableRetryOnFailure
-    (maxRetryCount: 3,
-    maxRetryDelay: System.TimeSpan.FromSeconds(5),
-    errorNumbersToAdd: null)
+        options
+            .EnableRetryOnFailure
+            (
+                maxRetryCount: 3,
+                maxRetryDelay: System.TimeSpan.FromSeconds(5),
+                errorNumbersToAdd: null
+            )
+            .EnableStringComparisonTranslations()
     ));
+
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<JwtTokenService>();
