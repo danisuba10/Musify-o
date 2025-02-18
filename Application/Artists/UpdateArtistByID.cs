@@ -55,7 +55,7 @@ namespace Application.Artists
                     }
                     catch (Exception ex)
                     {
-                        throw new Exception("Update artist error: Image upload failed:\n", ex);
+                        throw new Exception("Update artist error: Image upload failed:\n" + ex.Message, ex);
                     }
                 }
 

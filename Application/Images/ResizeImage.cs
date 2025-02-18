@@ -93,13 +93,13 @@ namespace Application.Images
                     Mode = ResizeMode.Stretch
                 }));
 
-                // Then center crop to exact dimensions
-                image.Mutate(x => x.Crop(new Rectangle(
-                    (image.Width - targetWidth) / 2,
-                    (image.Height - targetHeight) / 2,
-                    targetWidth,
-                    targetHeight
-                )));
+                int cropX = Math.Max((image.Width - targetWidth) / 2, 0);
+                int cropY = Math.Max((image.Height - targetHeight) / 2, 0);
+
+                int cropWidth = Math.Min(targetWidth, image.Width - cropX);
+                int cropHeight = Math.Min(targetHeight, image.Height - cropY);
+
+                image.Mutate(x => x.Crop(new Rectangle(cropX, cropY, cropWidth, cropHeight)));
             }
         }
     }
