@@ -17,6 +17,7 @@ namespace Application.Albums
         {
             public Guid Id { get; set; }
             public string? Name { get; set; }
+            public int? Year { get; set; }
             public IFormFile? File { get; set; }
             public List<Guid>? ArtistIds { get; set; }
             public string ImageFolderPath { get; set; }
@@ -35,7 +36,7 @@ namespace Application.Albums
             {
                 int artistsNotAdded = 0;
 
-                if (query.Name == null && query.File == null && (query.ArtistIds == null || query.ArtistIds.Count == 0))
+                if (query.Name == null && query.File == null && query.Year == null && (query.ArtistIds == null || query.ArtistIds.Count == 0))
                 {
                     throw new Exception("No new data supplied! Change could not be made!");
                 }
@@ -50,6 +51,7 @@ namespace Application.Albums
 
                 if (!String.IsNullOrWhiteSpace(query.Name))
                 {
+                    Console.WriteLine(query.Name);
                     existingAlbum.Name = query.Name;
                 }
 
@@ -63,6 +65,11 @@ namespace Application.Albums
                     {
                         throw new Exception("Update album error: Image upload failed:\n", ex);
                     }
+                }
+
+                if (query.Year != null)
+                {
+                    existingAlbum.ReleaseYear = (int)query.Year;
                 }
 
                 if (!(query.ArtistIds == null || query.ArtistIds.Count == 0))

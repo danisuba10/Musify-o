@@ -10,6 +10,7 @@ namespace Application.DataTransferObjects.Requests
     {
         public Guid Id { get; set; }
         public string? Name { get; set; }
+        public int? Year { get; set; }
         public IFormFile? FormFile { get; set; }
         public List<Guid>? ArtistIds { get; set; }
     }

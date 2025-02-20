@@ -332,7 +332,7 @@ namespace API.Controllers
         {
             try
             {
-                await Mediator.Send(new UpdateAlbumByID.Query { Id = request.Id, Name = request.Name, File = request.FormFile, ArtistIds = request.ArtistIds, ImageFolderPath = ImageFolderPath });
+                await Mediator.Send(new UpdateAlbumByID.Query { Id = request.Id, Name = request.Name, Year = request.Year, File = request.FormFile, ArtistIds = request.ArtistIds, ImageFolderPath = ImageFolderPath });
                 return Ok();
             }
             catch (Exception e)
