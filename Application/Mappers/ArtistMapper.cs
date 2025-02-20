@@ -11,19 +11,34 @@ namespace Application.Mappers
 {
     public class ArtistMapper
     {
-        public static ArtistResponse MapToResponse(Artist artist)
+        public static ArtistResponse MapToResponse(Artist artist, ImageAccent? imageAccent, List<Album>? topAlbums)
         {
-            return new ArtistResponse
+            ArtistResponse response = new ArtistResponse
             {
                 Id = artist.Id,
                 Name = artist.Name,
-                ImageLocation = artist.ImageLocation
+                ImageLocation = artist.ImageLocation,
+                Image = new ImageResponse { ImageLocation = artist.ImageLocation }
             };
+
+            if (imageAccent != null)
+            {
+                response.Image.LowColor = imageAccent.LowAccent;
+                response.Image.MiddleColor = imageAccent.MiddleAccent;
+                response.Image.HighColor = imageAccent.HighAccent;
+            }
+
+            if (topAlbums != null)
+            {
+                response.TopAlbums = AlbumMapper.MapToSearchResultList(topAlbums);
+            }
+
+            return response;
         }
 
         public static List<ArtistResponse> MapToResponseList(List<Artist> artists)
         {
-            return artists.Select(MapToResponse).ToList();
+            return artists.Select(artist => MapToResponse(artist, null, null)).ToList();
         }
 
         public static SearchResult MapToSearchResult(Artist artist)

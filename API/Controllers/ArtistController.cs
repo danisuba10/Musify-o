@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using System.Threading;
 using Application.DataTransferObjects.Requests;
 using Microsoft.AspNetCore.Authorization;
+using Application.ImageAccents;
 
 namespace API.Controllers
 {
@@ -36,7 +37,7 @@ namespace API.Controllers
                 throw;
             }
 
-            return Path.Combine("/artist", name + ".jpg");
+            return Path.Combine("artist", name + ".jpg");
         }
 
         [HttpPost("GetArtistByName")]
@@ -167,7 +168,12 @@ namespace API.Controllers
             {
                 return NotFound("Artist with this ID not found!");
             }
-            return Ok(ArtistMapper.MapToResponse(artist));
+            List<Album> topTenAlbums = await Mediator.Send(new GetTopAlbumsOfArtist.Query { Id = artist.Id });
+
+            ImageAccent? imageAccent = await Mediator.Send(
+                new GetImageAccentByPath.Query
+                { Path = Path.Combine(ImageFolderPath, artist.ImageLocation) });
+            return Ok(ArtistMapper.MapToResponse(artist, imageAccent, topTenAlbums));
         }
 
         [Authorize(Policy = "Admin")]

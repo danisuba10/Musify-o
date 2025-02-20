@@ -10,5 +10,7 @@ namespace Application.DataTransferObjects.Responses
         public Guid? Id { get; set; } = null;
         public string ImageLocation { get; set; } = "";
         public string Name { get; set; } = "";
+        public ImageResponse? Image { get; set; } = null;
+        public List<SearchResult>? TopAlbums { get; set; }
     }
 }
