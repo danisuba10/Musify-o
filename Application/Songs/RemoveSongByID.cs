@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Persistence;
 using Microsoft.EntityFrameworkCore;
+using Application.Exceptions.Song;
 
 namespace Application.Songs
 {
@@ -28,7 +29,7 @@ namespace Application.Songs
 
                 if (Song == null)
                 {
-                    throw new Exception("Song does not exist exist!");
+                    throw new SongDoesNotExistException();
                 }
 
                 _context.Songs.Remove(Song);
