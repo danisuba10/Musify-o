@@ -283,7 +283,7 @@ namespace API.Controllers
 
             if (!String.IsNullOrWhiteSpace(errorMessage))
             {
-                return BadRequest(errorMessage);
+                return BadRequest(new { Id = id, Message = errorMessage });
             }
 
             return Ok(new { Id = id, Message = "Album added successfully!" });
