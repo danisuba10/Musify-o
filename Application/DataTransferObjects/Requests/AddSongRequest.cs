@@ -11,5 +11,6 @@ namespace Application.DataTransferObjects.Requests
         public int Duration { get; set; }
         public Guid? AlbumId { get; set; }
         public int? PositionInAlbum { get; set; }
+        public List<Guid>? ArtistIds { get; set; }
     }
 }

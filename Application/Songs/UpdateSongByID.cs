@@ -7,6 +7,7 @@ using Domain;
 using Microsoft.EntityFrameworkCore;
 using Persistence;
 using System.Reflection.Metadata;
+using Application.Exceptions.Song;
 
 namespace Application.Songs
 {
@@ -19,6 +20,7 @@ namespace Application.Songs
             public TimeSpan? Duration { get; set; }
             public Guid? AlbumID { get; set; }
             public int? PositionInAlbum { get; set; }
+            public List<Guid>? ArtistIds { get; set; }
         }
 
         public class Handler : IRequestHandler<Command>
@@ -37,7 +39,7 @@ namespace Application.Songs
 
                 if (existingSong == null)
                 {
-                    throw new Exception("Song was not found!");
+                    throw new SongDoesNotExistException();
                 }
 
                 if (!string.IsNullOrWhiteSpace(command.Title))
@@ -69,8 +71,30 @@ namespace Application.Songs
                     existingSong.PositionInAlbum = (int)command.PositionInAlbum;
                 }
 
+                int artistsNotAdded = 0;
+                if (command.ArtistIds != null)
+                {
+                    try
+                    {
+                        artistsNotAdded = await _mediator.Send(new AddArtistsToSong.Query { SongId = command.Id, ArtistIds = command.ArtistIds, Replace = true });
+                    }
+                    catch (SongDoesNotExistException)
+                    {
+                        throw;
+                    }
+                    catch (Exception)
+                    {
+                        throw;
+                    }
+                }
+
                 _context.Songs.Update(existingSong);
                 await _context.SaveChangesAsync();
+
+                if (artistsNotAdded > 0)
+                {
+                    throw new Exception("Song updated however some artists failed to be added!");
+                }
 
                 return Unit.Value;
             }

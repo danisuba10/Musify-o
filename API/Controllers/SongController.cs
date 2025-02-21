@@ -46,6 +46,22 @@ namespace API.Controllers
             try
             {
                 Guid id = await Mediator.Send(new AddSong.Command { songRequest = request });
+
+                string errorMessage = "";
+                if (request.ArtistIds != null && request.ArtistIds.Count > 0)
+                {
+                    int failures = await Mediator.Send(new AddArtistsToSong.Query { SongId = id, ArtistIds = request.ArtistIds });
+                    if (failures != 0)
+                    {
+                        errorMessage += "Out of " + request.ArtistIds.Count.ToString() + " artists " + failures.ToString() + " could not be added!\n";
+                    }
+                }
+
+                if (!String.IsNullOrWhiteSpace(errorMessage))
+                {
+                    return BadRequest(new { Id = id, Message = errorMessage });
+                }
+
                 return Ok(new { Id = id, Message = "Artist added successfully!" });
             }
             catch (Exception e)
@@ -58,7 +74,7 @@ namespace API.Controllers
         [HttpPost("remove-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> removeSong(Guid id)
+        public async Task<IActionResult> removeSong([FromForm] Guid id)
         {
             try
             {
@@ -103,18 +119,20 @@ namespace API.Controllers
                 await Mediator.Send(
                     new UpdateSongByID.Command
                     {
-                        Id = request.ID,
+                        Id = request.Id,
                         Title = request.Title,
                         Duration = request.Duration.HasValue ? TimeSpan.FromSeconds((double)request.Duration) : null,
                         PositionInAlbum = request.PositionInAlbum,
-                        AlbumID = request.AlbumId
+                        AlbumID = request.AlbumId,
+                        ArtistIds = request.ArtistIds
                     });
                 return Ok("Song updated successfully!");
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return BadRequest($"{e.Message} - {e.InnerException?.Message}");
             }
+
         }
 
         [HttpPost("search")]
