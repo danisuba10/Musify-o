@@ -41,7 +41,7 @@ namespace Application.Mappers
                     .ToList()
             );
             response.Songs = SongMapper.MapToResponseList(
-                album.Songs.ToList()
+                album.Songs.ToList(), true
             );
 
             response.SongCount = album.Songs.Count;

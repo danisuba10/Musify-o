@@ -34,7 +34,9 @@ namespace Application.Albums
                 if (query.IncludeSongs)
                 {
                     albumQuery = albumQuery
-                                    .Include(a => a.Songs);
+                                    .Include(a => a.Songs)
+                                        .ThenInclude(s => s.SongArtistRelations)
+                                            .ThenInclude(sar => sar.Artist);
                 }
 
                 if (query.IncludeArtists)
