@@ -181,7 +181,7 @@ namespace API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> removeArtist(Guid id)
+        public async Task<IActionResult> removeArtist([FromForm] Guid id)
         {
             try
             {
