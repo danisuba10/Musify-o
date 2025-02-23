@@ -22,6 +22,7 @@ namespace Domain
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         [Required]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public ICollection<PlaylistSongRelation> PlaylistSongRelations = new List<PlaylistSongRelation>();
 
         public Song() { }
         public Song(string title, TimeSpan duration)

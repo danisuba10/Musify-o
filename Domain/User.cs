@@ -17,5 +17,6 @@ namespace Domain
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         [Required]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public ICollection<Playlist> Playlists { get; set; } = new List<Playlist>();
     }
 }
