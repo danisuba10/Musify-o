@@ -17,6 +17,12 @@ namespace Persistence
         public DbSet<ImageAccent> ImageAccents { get; set; }
         public DbSet<SongArtistRelation> SongArtistRelations { get; set; }
         public DbSet<AlbumArtistRelation> AlbumArtistRelations { get; set; }
+        public DbSet<Playlist> Playlists { get; set; }
+        public DbSet<PlaylistSongRelation> PlaylistSongRelations { get; set; }
+        public DbSet<PlayRecord> PlayRecords { get; set; }
+        public DbSet<SongPlayRecord> SongPlayRecords { get; set; }
+        public DbSet<AlbumPlayRecord> AlbumPlayRecords { get; set; }
+        public DbSet<PlaylistPlayRecord> PlaylistPlayRecords { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
@@ -42,6 +48,7 @@ namespace Persistence
                 typeof(Album),
                 typeof(Song),
                 typeof(User),
+                typeof(Playlist)
             };
 
             var entries = ChangeTracker.Entries()
@@ -84,6 +91,10 @@ namespace Persistence
                 .Property(a => a.Id)
                 .HasDefaultValueSql("'UUID()'");
 
+            modelBuilder.Entity<Playlist>()
+                .Property(p => p.Id)
+                .HasDefaultValueSql("'UUID()'");
+
             modelBuilder.Entity<Artist>()
                 .Property(art => art.Id)
                 .HasDefaultValueSql("'UUID()'");
@@ -106,6 +117,13 @@ namespace Persistence
                 .HasIndex(artist => artist.Name)
                 .HasDatabaseName("IX_Artist_Name");
 
+            modelBuilder.Entity<PlaylistSongRelation>()
+                .HasIndex(psr => psr.PlaylistId)
+                .HasDatabaseName("IX_PlaylistSongRelation_PlaylistId");
+
+            modelBuilder.Entity<PlaylistSongRelation>()
+                .HasIndex(psr => psr.SongId)
+                .HasDatabaseName("IX_PlaylistSongRelation_SongId");
 
             modelBuilder.Entity<SongArtistRelation>()
                 .HasIndex(sar => sar.SongId)
@@ -179,6 +197,9 @@ namespace Persistence
             modelBuilder.Entity<AlbumArtistRelation>()
                 .HasKey(aar => new { aar.AlbumId, aar.ArtistId });
 
+            modelBuilder.Entity<PlaylistSongRelation>()
+                .HasKey(psr => new { psr.PlaylistId, psr.SongId });
+
             modelBuilder.Entity<AlbumArtistRelation>()
                 .HasOne(aar => aar.Album)
                 .WithMany(album => album.AlbumArtistRelations)
@@ -188,6 +209,56 @@ namespace Persistence
                 .HasOne(aar => aar.Artist)
                 .WithMany(artist => artist.AlbumArtistRelations)
                 .HasForeignKey(aar => aar.ArtistId);
+
+            modelBuilder.Entity<PlaylistSongRelation>()
+                .HasOne(psr => psr.Song)
+                .WithMany(song => song.PlaylistSongRelations)
+                .HasForeignKey(psr => psr.SongId);
+
+            modelBuilder.Entity<PlaylistSongRelation>()
+                .HasOne(psr => psr.Playlist)
+                .WithMany(playlist => playlist.PlaylistSongRelations)
+                .HasForeignKey(psr => psr.PlaylistId);
+
+            modelBuilder.Entity<PlayRecord>()
+                .HasKey(p => p.Id);
+
+            modelBuilder.Entity<PlayRecord>()
+                .HasDiscriminator(p => p.PlayedItemType)
+                .HasValue<SongPlayRecord>(PlayedItemType.Song)
+                .HasValue<AlbumPlayRecord>(PlayedItemType.Album)
+                .HasValue<PlaylistPlayRecord>(PlayedItemType.Playlist);
+
+            modelBuilder.Entity<PlayRecord>()
+                .HasIndex(p => new { p.PlayedItemType, p.PlayedItemId });
+
+            modelBuilder.Entity<PlayRecord>()
+                .HasIndex(p => p.Timestamp);
+
+            modelBuilder.Entity<PlayRecord>()
+                .HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId);
+
+            modelBuilder.Entity<PlayRecord>()
+                .Property(p => p.Id)
+                .HasColumnName("Id");
+
+            modelBuilder.Entity<PlayRecord>()
+                .Property(p => p.PlayedItemType)
+                .HasColumnName("PlayedItemType");
+
+            modelBuilder.Entity<PlayRecord>()
+                .Property(p => p.PlayedItemId)
+                .HasColumnName("PlayedItemId");
+
+            modelBuilder.Entity<PlayRecord>()
+                .Property(p => p.UserId)
+                .HasColumnName("UserId");
+
+            modelBuilder.Entity<PlayRecord>()
+                .Property(p => p.Timestamp)
+                .HasColumnName("Timestamp");
         }
     }
 }
