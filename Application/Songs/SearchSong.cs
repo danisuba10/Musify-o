@@ -14,7 +14,7 @@ namespace Application.Songs
     {
         public class Query : IRequest<List<Song>>
         {
-            public SearchRequest Request { get; set; }
+            public required SearchRequest Request { get; set; }
         }
 
         public class Handler : IRequestHandler<Query, List<Song>>

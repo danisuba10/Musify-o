@@ -47,7 +47,8 @@ namespace Application.Mappers
                 Id = song.Id,
                 Name = song.Title,
                 Type = "Album",
-                ImageLocation = song.Album?.ImageLocation
+                ImageLocation = song.Album?.ImageLocation,
+                ParentId = song.Album?.Id
             };
         }
 

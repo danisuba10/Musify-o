@@ -38,7 +38,8 @@ namespace Application.Search
                         Type = "Song",
                         Id = s.Id,
                         Name = s.Title,
-                        ImageLocation = s.Album.ImageLocation
+                        ImageLocation = s.Album.ImageLocation,
+                        ParentId = s.AlbumId
                     })
                     .Take(20)
                     .ToListAsync(cancellationToken);
