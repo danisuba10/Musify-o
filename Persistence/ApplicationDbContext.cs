@@ -95,6 +95,11 @@ namespace Persistence
                 .Property(p => p.Id)
                 .HasDefaultValueSql("'UUID()'");
 
+            modelBuilder.Entity<Playlist>()
+                .Property(p => p.Visibility)
+                .HasConversion<string>()
+                .HasColumnName("Visibility");
+
             modelBuilder.Entity<Artist>()
                 .Property(art => art.Id)
                 .HasDefaultValueSql("'UUID()'");
