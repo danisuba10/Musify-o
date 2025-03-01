@@ -15,7 +15,7 @@ namespace Domain
         public string Description { get; set; } = string.Empty;
         [Required]
         public Guid UserId { get; set; }
-        public Visibility Visibility;
+        public Visibility Visibility { get; set; }
         public User User { get; set; } = null!;
         public ICollection<PlaylistSongRelation> PlaylistSongRelations { get; set; } = new List<PlaylistSongRelation>();
         [Required]
