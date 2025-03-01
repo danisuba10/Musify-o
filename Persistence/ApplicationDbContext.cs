@@ -246,6 +246,7 @@ namespace Persistence
 
             modelBuilder.Entity<PlayRecord>()
                 .Property(p => p.PlayedItemType)
+                .HasConversion<string>()
                 .HasColumnName("PlayedItemType");
 
             modelBuilder.Entity<PlayRecord>()
