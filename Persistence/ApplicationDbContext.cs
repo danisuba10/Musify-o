@@ -98,6 +98,7 @@ namespace Persistence
             modelBuilder.Entity<Playlist>()
                 .Property(p => p.Visibility)
                 .HasConversion<string>()
+                .HasColumnType("varchar(10)")
                 .HasColumnName("Visibility");
 
             modelBuilder.Entity<Artist>()
