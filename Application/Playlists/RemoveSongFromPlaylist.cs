@@ -29,6 +29,7 @@ namespace Application.Playlists
             public async Task<Unit> Handle(Command cmd, CancellationToken cancellationToken)
             {
                 var playlist = await _context.Playlists
+                    .Include(p => p.PlaylistSongRelations)
                     .FirstOrDefaultAsync(pl => pl.Id == cmd.req.PlaylistId, cancellationToken);
 
                 if (playlist == null)
