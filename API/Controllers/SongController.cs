@@ -7,7 +7,10 @@ using Application.Artists;
 using Application.DataTransferObjects;
 using Application.DataTransferObjects.Requests;
 using Application.DataTransferObjects.Responses;
+using Application.Exceptions.Common;
+using Application.Exceptions.Song;
 using Application.Mappers;
+using Application.PlayRecords;
 using Application.Songs;
 using Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -164,5 +167,31 @@ namespace API.Controllers
             }
         }
 
+        [HttpGet("{id}/play")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> playSong(Guid id, [FromQuery] Guid userId, [FromQuery] DateTime? time)
+        {
+            try
+            {
+                var Song = await Mediator.Send(new GetSongByID.Query { Id = id });
+                await Mediator.Send(new RecordPlay.Query { UserId = userId, PlayedItemType = PlayedItemType.Song, PlayedItemId = id, TimeStamp = time });
+                return Ok();
+            }
+            catch (NotExistingObjectExceptions sDNE)
+            {
+                return NotFound(sDNE.Message);
+            }
+            catch (ArgumentException ae)
+            {
+                return BadRequest("Internal error:" + ae.Message);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
     }
+
 }

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.Exceptions.Common;
+using Application.Exceptions.Song;
 using Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -49,7 +51,7 @@ namespace Application.Songs
 
                 if (song == null)
                 {
-                    throw new Exception($"Song with ID {query.Id} does not exists.");
+                    throw new NotExistingObjectExceptions("Song");
                 }
 
                 return song;
