@@ -41,7 +41,20 @@ namespace Application.Playlists
                     throw new UnauthorizedAccessException();
                 }
 
-                playlist.PlaylistSongRelations.Add(new Domain.PlaylistSongRelation { PlaylistId = cmd.req.PlaylistId, SongId = cmd.req.SongId });
+                var songAlreadyExists = _context.PlaylistSongRelations
+                    .Any(r => r.SongId == cmd.req.SongId);
+
+                if (songAlreadyExists == true)
+                {
+                    throw new Exception("Song already exists so it can not be added to playlist!");
+                }
+
+                int lastOrder = _context.PlaylistSongRelations
+                    .OrderByDescending(r => r.PositionInPlaylist)
+                    .Select(r => r.PositionInPlaylist)
+                    .FirstOrDefault();
+
+                playlist.PlaylistSongRelations.Add(new Domain.PlaylistSongRelation { PlaylistId = cmd.req.PlaylistId, SongId = cmd.req.SongId, PositionInPlaylist = lastOrder + 1 });
 
                 await _context.SaveChangesAsync(cancellationToken);
 
