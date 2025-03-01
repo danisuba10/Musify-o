@@ -51,21 +51,17 @@ namespace API.Controllers
                 return Unauthorized("User identifier not found.");
             }
 
-            Playlist playlist = new Playlist
-            {
-                Id = id,
-                Name = request.Name,
-                UserId = userId,
-                Description = request.Description ?? "",
-            };
-
             try
             {
-                await Mediator.Send(new AddPlaylist.Command { dto = request, UserId = userId });
+                await Mediator.Send(new AddPlaylist.Command { dto = request, UserId = userId, Id = id });
             }
             catch (NotExistingObjectExceptions ex)
             {
                 errorMessage += "First song when adding playlist error!: " + ex.Message + "\n";
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message + "\nInner exception: " + e.InnerException?.Message);
             }
 
             if (request.FormFile != null)
@@ -85,7 +81,7 @@ namespace API.Controllers
                 return BadRequest(new { Id = id, Message = errorMessage });
             }
 
-            return Ok(new { Id = id, Message = "Album added successfully!" });
+            return Ok(new { Id = id, Message = "Playlist added successfully!" });
         }
 
         [Authorize]
@@ -192,6 +188,10 @@ namespace API.Controllers
             catch (NotExistingObjectExceptions ex)
             {
                 return NotFound(ex.Message);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("Song cannot be added to playlist as it was not created by the user logged in!");
             }
             catch (Exception e)
             {
