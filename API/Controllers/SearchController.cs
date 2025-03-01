@@ -12,10 +12,10 @@ namespace API.Controllers
     [Route("search/")]
     public class SearchController : BaseController
     {
-        [HttpPost("mixed")]
-        public async Task<GlobalSearchResult> mixedSearch(string term, CancellationToken cancellationToken)
+        [HttpGet("mixed")]
+        public async Task<GlobalSearchResult> mixedSearch([FromQuery] string Term, CancellationToken cancellationToken)
         {
-            GlobalSearchResult result = await Mediator.Send(new GlobalSearch.Query { SearchString = term }, cancellationToken);
+            GlobalSearchResult result = await Mediator.Send(new GlobalSearch.Query { SearchString = Term }, cancellationToken);
             return result;
         }
     }
