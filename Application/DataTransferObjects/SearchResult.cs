@@ -11,5 +11,6 @@ namespace Application.DataTransferObjects
         public required Guid Id { get; set; }
         public required string Name { get; set; }
         public string? ImageLocation { get; set; }
+        public Guid? ParentId { get; set; }
     }
 }
