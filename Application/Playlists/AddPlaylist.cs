@@ -12,23 +12,25 @@ namespace Application.Playlists
 {
     public class AddPlaylist
     {
-        public class Command : IRequest<Unit>
+        public class Command : IRequest<Guid>
         {
             public required AddPlaylistRequest dto { get; set; }
             public required Guid UserId { get; set; }
+            public required Guid Id { get; set; }
         }
 
-        public class Handler : IRequestHandler<Command, Unit>
+        public class Handler : IRequestHandler<Command, Guid>
         {
             ApplicationDbContext _context;
             public Handler(ApplicationDbContext context)
             {
                 _context = context;
             }
-            public async Task<Unit> Handle(Command cmd, CancellationToken cancellationToken)
+            public async Task<Guid> Handle(Command cmd, CancellationToken cancellationToken)
             {
                 Playlist playlist = new Playlist
                 {
+                    Id = cmd.Id,
                     Name = cmd.dto.Name,
                     UserId = (Guid)cmd.UserId,
                     Description = string.IsNullOrWhiteSpace(cmd.dto.Description) ? "" : cmd.dto.Description
@@ -36,6 +38,7 @@ namespace Application.Playlists
 
                 await _context.Playlists.AddAsync(playlist, cancellationToken);
                 await _context.SaveChangesAsync(cancellationToken);
+                Console.WriteLine("First save ok!");
 
                 if (cmd.dto.FirstSongId == null)
                 {
@@ -47,12 +50,12 @@ namespace Application.Playlists
                 if (songExists)
                 {
                     playlist.PlaylistSongRelations.Add(
-                        new PlaylistSongRelation { PlaylistId = playlist.Id, SongId = (Guid)cmd.dto.FirstSongId }
+                        new PlaylistSongRelation { PlaylistId = playlist.Id, SongId = (Guid)cmd.dto.FirstSongId, PositionInPlaylist = 1 }
                     );
                     await _context.SaveChangesAsync(cancellationToken);
                 }
 
-                return Unit.Value;
+                return playlist.Id;
             }
         }
     }
