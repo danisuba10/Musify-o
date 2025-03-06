@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.Constants;
 using Application.DataTransferObjects.Requests;
 using Domain;
 using MediatR;
@@ -15,6 +16,8 @@ namespace Application.Playlists
         public class Query : IRequest<List<Playlist>>
         {
             public required SearchRequest Request { get; set; }
+            public Guid? UserId { get; set; }
+            public string? Role { get; set; }
         }
         public class Handler : IRequestHandler<Query, List<Playlist>>
         {
@@ -30,7 +33,16 @@ namespace Application.Playlists
 
                 if (!String.IsNullOrWhiteSpace(searchTerm))
                 {
-                    pQuery = pQuery.Where(a => a.Name.ToLower().Contains(searchTerm));
+                    pQuery = pQuery.Where(p => p.Name.ToLower().Contains(searchTerm));
+                }
+
+                if (query.UserId == null)
+                {
+                    pQuery = pQuery.Where(p => p.Visibility == Visibility.Public);
+                }
+                else if (!(query.Role?.Equals("Admin") ?? false))
+                {
+                    pQuery = pQuery.Where(p => p.Visibility == Visibility.Public || p.UserId == query.UserId);
                 }
 
                 if (!String.IsNullOrWhiteSpace(query.Request.LastName) && query.Request.LastCreatedAt.HasValue)
