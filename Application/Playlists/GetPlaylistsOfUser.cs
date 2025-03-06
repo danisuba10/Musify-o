@@ -24,6 +24,14 @@ namespace Application.Playlists
             }
             public async Task<List<Playlist>> Handle(Query query, CancellationToken cancellationToken)
             {
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Id == query.UserId, cancellationToken);
+
+                if (user == null)
+                {
+                    throw new ArgumentException();
+                }
+
                 List<Guid> playlistIds = new List<Guid>();
 
                 List<Guid>? lastPlayedPlaylists = await _context.PlaylistPlayRecords
@@ -32,6 +40,11 @@ namespace Application.Playlists
                     .Take(10)
                     .Select(pr => pr.PlayedItemId)
                     .ToListAsync(cancellationToken);
+
+                if (lastPlayedPlaylists == null)
+                {
+                    lastPlayedPlaylists = new List<Guid>();
+                }
 
                 if (lastPlayedPlaylists != null)
                 {
@@ -55,6 +68,8 @@ namespace Application.Playlists
 
                 var playlists = await _context.Playlists
                     .Where(p => playlistIds.Contains(p.Id))
+                    .Include(p => p.PlaylistSongRelations)
+                    .Include(p => p.User)
                     .ToListAsync(cancellationToken);
 
                 return playlists;
