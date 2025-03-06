@@ -17,6 +17,7 @@ namespace Application.Playlists
             public required AddPlaylistRequest dto { get; set; }
             public required Guid UserId { get; set; }
             public required Guid Id { get; set; }
+            public required string ImagePath { get; set; }
         }
 
         public class Handler : IRequestHandler<Command, Guid>
@@ -33,7 +34,8 @@ namespace Application.Playlists
                     Id = cmd.Id,
                     Name = cmd.dto.Name,
                     UserId = (Guid)cmd.UserId,
-                    Description = string.IsNullOrWhiteSpace(cmd.dto.Description) ? "" : cmd.dto.Description
+                    Description = string.IsNullOrWhiteSpace(cmd.dto.Description) ? "" : cmd.dto.Description,
+                    ImageLocation = cmd.ImagePath
                 };
 
                 await _context.Playlists.AddAsync(playlist, cancellationToken);
