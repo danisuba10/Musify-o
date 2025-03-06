@@ -44,6 +44,7 @@ namespace API.Controllers
         [HttpPost("add-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> addSong([FromForm] AddSongRequest request)
         {
             try
@@ -76,6 +77,7 @@ namespace API.Controllers
         [Authorize(Policy = "Admin")]
         [HttpPost("remove-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> removeSong([FromForm] Guid id)
         {
@@ -93,6 +95,7 @@ namespace API.Controllers
         [Authorize(Policy = "Admin")]
         [HttpPost("remove-songs")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> removeSongs([FromForm] List<Guid> songIds)
         {
@@ -114,6 +117,7 @@ namespace API.Controllers
         [Authorize(Policy = "Admin")]
         [HttpPost("update-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> updateSong([FromForm] UpdateSongRequest request)
         {
