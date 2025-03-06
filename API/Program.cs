@@ -115,6 +115,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
             .EnableStringComparisonTranslations()
     ));
 
+builder.Services.AddDbContextFactory<ApplicationDbContext>((IServiceProvider sp, DbContextOptionsBuilder options) =>
+{
+    var dbContextOptions = sp.GetRequiredService<DbContextOptions<ApplicationDbContext>>();
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0)), options =>
+        options
+            .EnableRetryOnFailure
+            (
+                maxRetryCount: 3,
+                maxRetryDelay: System.TimeSpan.FromSeconds(5),
+                errorNumbersToAdd: null
+            )
+            .EnableStringComparisonTranslations()
+    );
+}, ServiceLifetime.Scoped);
+
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<JwtTokenService>();
