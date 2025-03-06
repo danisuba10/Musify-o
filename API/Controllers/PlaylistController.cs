@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Application.DataTransferObjects.Requests;
 using Application.Exceptions.Common;
+using Application.ImageAccents;
 using Application.Images;
+using Application.Mappers;
 using Application.Playlists;
 using Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -51,19 +53,6 @@ namespace API.Controllers
                 return Unauthorized("User identifier not found.");
             }
 
-            try
-            {
-                await Mediator.Send(new AddPlaylist.Command { dto = request, UserId = userId, Id = id });
-            }
-            catch (NotExistingObjectExceptions ex)
-            {
-                errorMessage += "First song when adding playlist error!: " + ex.Message + "\n";
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message + "\nInner exception: " + e.InnerException?.Message);
-            }
-
             if (request.FormFile != null)
             {
                 try
@@ -74,6 +63,19 @@ namespace API.Controllers
                 {
                     errorMessage += "Image upload failed!: " + ex.Message + "\n";
                 }
+            }
+
+            try
+            {
+                await Mediator.Send(new AddPlaylist.Command { dto = request, UserId = userId, Id = id, ImagePath = imagePath });
+            }
+            catch (NotExistingObjectExceptions ex)
+            {
+                errorMessage += "First song when adding playlist error!: " + ex.Message + "\n";
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message + "\nInner exception: " + e.InnerException?.Message);
             }
 
             if (!String.IsNullOrWhiteSpace(errorMessage))
@@ -198,5 +200,41 @@ namespace API.Controllers
                 return BadRequest(e.Message);
             }
         }
+
+        [HttpPost("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> getPlaylist(Guid id)
+        {
+            Guid? userId = null;
+            if (Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out Guid parsedUserId))
+            {
+                userId = parsedUserId;
+            }
+
+            var userRole = User.Claims.FirstOrDefault(c => c.Type == "Role")?.Value;
+
+            try
+            {
+                Playlist playlist = await Mediator.Send(new GetPlaylistById.Query { Id = id, UserId = userId, Role = userRole });
+                ImageAccent? accent = await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, playlist.ImageLocation) });
+                return Ok(PlaylistMapper.MapToResponse(playlist, accent, playlist.User));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
+            catch (NotExistingObjectExceptions nonEx)
+            {
+                return NotFound(nonEx.Message);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
     }
 }
