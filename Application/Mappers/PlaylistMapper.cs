@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.DataTransferObjects.Requests;
 using Application.DataTransferObjects.Responses;
 using Domain;
 
@@ -18,8 +19,15 @@ namespace Application.Mappers
                 UserId = playlist.UserId,
                 SongIds = playlist.PlaylistSongRelations.Select(relation => relation.SongId).ToList(),
                 SongCount = playlist.PlaylistSongRelations.Count,
-                Duration = (int)playlist.PlaylistSongRelations.Select(relation => relation.Song.Duration.TotalSeconds).Sum(),
-                Songs = SongMapper.MapToResponseList(playlist.PlaylistSongRelations.Select(relation => relation.Song).ToList(), true),
+                Duration = (int)playlist.PlaylistSongRelations
+                    .Where(relation => relation.Song != null)
+                    .Select(relation => relation.Song.Duration.TotalSeconds).Sum(),
+                Songs = SongMapper.MapToResponseList(
+                    playlist.PlaylistSongRelations
+                        .Where(relation => relation.Song != null)
+                        .Select(relation => relation.Song)
+                        .ToList(),
+                    true),
             };
 
             if (imageAccent != null)
@@ -36,6 +44,11 @@ namespace Application.Mappers
             }
 
             return response;
+        }
+
+        public static List<PlaylistResponse> MapToResponseList(List<PlaylistWithImageAccent> playlists, User user)
+        {
+            return playlists.Select(playlist => MapToResponse(playlist.Playlist, playlist.ImageAccent, user)).ToList();
         }
     }
 }
