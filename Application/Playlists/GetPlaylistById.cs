@@ -31,6 +31,7 @@ namespace Application.Playlists
                 var playlist = await _context.Playlists
                     .Include(pl => pl.PlaylistSongRelations)
                         .ThenInclude(pl => pl.Song)
+                    .Include(pl => pl.User)
                     .FirstOrDefaultAsync(pl => pl.Id == query.Id, cancellationToken);
 
                 if (playlist == null)
