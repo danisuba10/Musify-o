@@ -33,6 +33,7 @@ namespace Application.Mappers
             if (imageAccent != null)
             {
                 response.Image = new ImageResponse();
+                response.Image.ImageLocation = imageAccent.ImagePath;
                 response.Image.LowColor = imageAccent.LowAccent;
                 response.Image.MiddleColor = imageAccent.MiddleAccent;
                 response.Image.HighColor = imageAccent.HighAccent;
