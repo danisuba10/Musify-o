@@ -34,6 +34,7 @@ namespace Application.Services
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim("Identifier", user.Id.ToString()),
+                new Claim(ClaimTypes.Role, user.Role),
                 new Claim("Role", user.Role)
             };
 
