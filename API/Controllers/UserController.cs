@@ -6,7 +6,12 @@ using System.Security.Authentication;
 using System.Threading.Tasks;
 using Application.DataTransferObjects.Requests;
 using Application.Exceptions.User;
+using Application.ImageAccents;
+using Application.Mappers;
+using Application.Playlists;
 using Application.Users;
+using Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
@@ -70,6 +75,51 @@ namespace API.Controllers
                 return BadRequest(ex.Message);
             }
 
+        }
+
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [HttpGet("playlists")]
+        public async Task<IActionResult> GetUserPlaylists(CancellationToken cancellationToken)
+        {
+            Guid userId;
+            if (!Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out userId))
+            {
+                return Unauthorized("User identifier not found.");
+            }
+
+            try
+            {
+                var playlists = await Mediator.Send(new GetPlaylistsOfUser.Query { UserId = userId });
+                var playlistsWithImageAccents = new List<PlaylistWithImageAccent>();
+
+                foreach (var playlist in playlists)
+                {
+                    var imageAccent = await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, playlist.ImageLocation) });
+                    playlistsWithImageAccents.Add(new PlaylistWithImageAccent
+                    {
+                        Playlist = playlist,
+                        ImageAccent = imageAccent
+                    });
+                }
+
+                var user = playlists.First().User;
+                if (user == null)
+                {
+                    return BadRequest("User not found for the playlist.");
+                }
+                return Ok(PlaylistMapper.MapToResponseList(playlistsWithImageAccents, user));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest("User of this playlist does not exist!");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }
