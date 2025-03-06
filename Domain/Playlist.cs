@@ -12,6 +12,7 @@ namespace Domain
         [Required]
         [StringLength(256)]
         public string Name { get; set; } = string.Empty;
+        public string ImageLocation { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         [Required]
         public Guid UserId { get; set; }
