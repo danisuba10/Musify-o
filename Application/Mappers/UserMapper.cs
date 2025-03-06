@@ -14,7 +14,7 @@ namespace Application.Mappers
             return new UserResponseCompact
             {
                 Id = user.Id,
-                DisplayName = user.DisplayName
+                DisplayName = String.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName
             };
         }
     }
