@@ -121,5 +121,46 @@ namespace API.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [HttpGet("search-playlists")]
+        public async Task<IActionResult> SearchUserPlaylist(string term)
+        {
+            try
+            {
+                Guid userId;
+                if (!Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out userId))
+                {
+                    return Unauthorized("User identifier not found.");
+                }
+
+                var playlists = await Mediator.Send(new SearchPlaylistOfUser.Query { Term = term, UserId = userId });
+                var playlistsWithImageAccents = new List<PlaylistWithImageAccent>();
+
+                foreach (var playlist in playlists)
+                {
+                    var imageAccent = await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, playlist.ImageLocation) });
+                    playlistsWithImageAccents.Add(new PlaylistWithImageAccent
+                    {
+                        Playlist = playlist,
+                        ImageAccent = imageAccent
+                    });
+                }
+
+                var user = await Mediator.Send(new GetUserById.Query { Id = userId });
+                if (user == null)
+                {
+                    return BadRequest("User not found for the playlist.");
+                }
+                return Ok(PlaylistMapper.MapToResponseList(playlistsWithImageAccents, user));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e);
+            }
+        }
     }
 }
