@@ -8,6 +8,7 @@ using Application.ImageAccents;
 using Application.Images;
 using Application.Mappers;
 using Application.Playlists;
+using Application.Songs;
 using Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -62,6 +63,21 @@ namespace API.Controllers
                 catch (Exception ex)
                 {
                     errorMessage += "Image upload failed!: " + ex.Message + "\n";
+                }
+            }
+            else if (request.FirstSongId != null)
+            {
+                var song = await Mediator.Send(new GetSongByID.Query { Id = (Guid)request.FirstSongId, IncludeAlbum = true });
+                if (song != null)
+                {
+                    try
+                    {
+                        imagePath = (await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, song.Album.ImageLocation) }))?.ImagePath ?? "";
+                    }
+                    catch (Exception ex)
+                    {
+                        errorMessage += "Error getting image from first song!: " + ex.Message + "\n";
+                    }
                 }
             }
 
