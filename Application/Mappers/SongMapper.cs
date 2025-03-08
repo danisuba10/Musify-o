@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Application.Core;
 using Application.DataTransferObjects;
+using Application.DataTransferObjects.Requests;
 using Application.DataTransferObjects.Responses;
 using Domain;
 
@@ -11,7 +12,7 @@ namespace Application.Mappers
 {
     public class SongMapper
     {
-        public static SongResponse MapToResponse(Song song, bool includeArtists = false)
+        public static SongResponse MapToResponse(Song song, int? playlistPosition, bool includeArtists = false)
         {
             SongResponse response = new SongResponse
             {
@@ -19,7 +20,7 @@ namespace Application.Mappers
                 Title = song.Title,
                 Duration = (int)song.Duration.TotalSeconds,
                 AlbumId = (Guid)song.AlbumId,
-                PositionInAlbum = song.PositionInAlbum,
+                PositionInAlbum = playlistPosition ?? song.PositionInAlbum,
             };
 
             List<Artist> artists = song.SongArtistRelations.Select(ar => ar.Artist).ToList();
@@ -35,9 +36,9 @@ namespace Application.Mappers
             return response;
         }
 
-        public static List<SongResponse> MapToResponseList(List<Song> songs, bool includeArtists = false)
+        public static List<SongResponse> MapToResponseList(List<SongMapperDTO> songs, bool includeArtists = false)
         {
-            return songs.Select(song => MapToResponse(song, includeArtists)).ToList();
+            return songs.Select(song => MapToResponse(song.Song, song.PositionInPlaylist, includeArtists)).ToList();
         }
 
         public static SearchResult MapToSearchResult(Song song)
