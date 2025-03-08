@@ -42,7 +42,7 @@ namespace Application.Playlists
                 }
 
                 var songAlreadyExists = _context.PlaylistSongRelations
-                    .Any(r => r.SongId == cmd.req.SongId);
+                    .Any(r => r.SongId == cmd.req.SongId && r.PlaylistId == cmd.req.PlaylistId);
 
                 if (songAlreadyExists == true)
                 {
@@ -50,6 +50,7 @@ namespace Application.Playlists
                 }
 
                 int lastOrder = _context.PlaylistSongRelations
+                    .Where(r => r.PlaylistId == cmd.req.PlaylistId)
                     .OrderByDescending(r => r.PositionInPlaylist)
                     .Select(r => r.PositionInPlaylist)
                     .FirstOrDefault();
