@@ -35,7 +35,8 @@ namespace Application.Playlists
                     Name = cmd.dto.Name,
                     UserId = (Guid)cmd.UserId,
                     Description = string.IsNullOrWhiteSpace(cmd.dto.Description) ? "" : cmd.dto.Description,
-                    ImageLocation = cmd.ImagePath
+                    ImageLocation = cmd.ImagePath,
+                    Visibility = cmd.dto.Visibility
                 };
 
                 await _context.Playlists.AddAsync(playlist, cancellationToken);
