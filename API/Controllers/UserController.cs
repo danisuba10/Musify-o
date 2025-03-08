@@ -93,6 +93,10 @@ namespace API.Controllers
             try
             {
                 var playlists = await Mediator.Send(new GetPlaylistsOfUser.Query { UserId = userId });
+                if (playlists.Count == 0)
+                {
+                    return NotFound("No playlists.");
+                }
                 var playlistsWithImageAccents = new List<PlaylistWithImageAccent>();
 
                 foreach (var playlist in playlists)
