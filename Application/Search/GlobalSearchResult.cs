@@ -11,5 +11,6 @@ namespace Application.Search
         public List<SearchResult> Artists { get; set; } = new List<SearchResult>();
         public List<SearchResult> Albums { get; set; } = new List<SearchResult>();
         public List<SearchResult> Songs { get; set; } = new List<SearchResult>();
+        public List<SearchResult> Playlists { get; set; } = new List<SearchResult>();
     }
 }
