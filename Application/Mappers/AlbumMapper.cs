@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Application.DataTransferObjects;
+using Application.DataTransferObjects.Requests;
 using Application.DataTransferObjects.Responses;
 using AutoMapper.Configuration.Conventions;
 using Domain;
@@ -41,7 +42,8 @@ namespace Application.Mappers
                     .ToList()
             );
             response.Songs = SongMapper.MapToResponseList(
-                album.Songs.ToList(), true
+                album.Songs.
+                    Select(song => new SongMapperDTO { Song = song, PositionInPlaylist = null }).ToList(), true
             );
 
             response.SongCount = album.Songs.Count;
