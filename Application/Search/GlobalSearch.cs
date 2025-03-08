@@ -17,6 +17,8 @@ namespace Application.Search
         public class Query : IRequest<GlobalSearchResult>
         {
             public required string SearchString { get; set; }
+            public Guid? UserId { get; set; }
+            public string? Role { get; set; }
         }
 
         public class Handler : IRequestHandler<Query, GlobalSearchResult>
@@ -58,11 +60,25 @@ namespace Application.Search
                     .Take(20)
                     .ToListAsync(cancellationToken);
 
+                var playlists = await _context.Playlists
+                    .Where(pl => pl.Name.Contains(query.SearchString, StringComparison.OrdinalIgnoreCase) &&
+                    (
+                        pl.Visibility == Domain.Visibility.Public ||
+                        pl.UserId == query.UserId ||
+                        query.Role == "Admin"
+                    ))
+                    .OrderBy(pl => pl.Name)
+                    .Select(pl => new SearchResult { Type = "Playlist", Id = pl.Id, Name = pl.Name, ImageLocation = pl.ImageLocation })
+                    .Take(20)
+                    .ToListAsync(cancellationToken);
+
+
                 return new GlobalSearchResult
                 {
                     Songs = songs,
                     Albums = albums,
-                    Artists = artists
+                    Artists = artists,
+                    Playlists = playlists
                 };
             }
         }
