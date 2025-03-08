@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.DataTransferObjects;
 using Application.DataTransferObjects.Requests;
+using Application.DataTransferObjects.Responses;
 using Application.Exceptions.Common;
 using Application.ImageAccents;
 using Application.Images;
@@ -217,7 +219,7 @@ namespace API.Controllers
             }
         }
 
-        [HttpPost("{id}")]
+        [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -250,6 +252,45 @@ namespace API.Controllers
             {
                 return BadRequest(e.Message);
             }
+        }
+
+        [HttpGet("search")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> searchPlaylists([FromQuery] SearchRequest searchRequest)
+        {
+
+            try
+            {
+                Guid? userId = null;
+                if (Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out Guid parsedUserId))
+                {
+                    userId = parsedUserId;
+                }
+
+                var userRole = User.Claims.FirstOrDefault(c => c.Type == "Role")?.Value;
+
+                List<Playlist> playlists = await Mediator.Send(new SearchPlaylist.Query { Request = searchRequest, UserId = userId, Role = userRole });
+                List<SearchResult> results = PlaylistMapper.MapToSearchResultList(playlists);
+
+                if (playlists.Count == 0)
+                {
+                    return NotFound("No results were found");
+                }
+
+                return Ok(new SearchResponse
+                {
+                    SearchResults = results,
+                    LastCreatedAt = playlists.Last().CreatedAt,
+                    LastName = playlists.Last().Name
+                });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e);
+            }
+
         }
 
     }
