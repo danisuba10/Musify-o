@@ -293,5 +293,50 @@ namespace API.Controllers
 
         }
 
+        [Authorize]
+        [HttpPost("{id}/update")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> updatePlaylist(Guid id, [FromForm] PlaylistUpdateRequest request)
+        {
+            try
+            {
+                Guid? userId = null;
+                if (Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out Guid parsedUserId))
+                {
+                    userId = parsedUserId;
+                }
+
+                var userRole = User.Claims.FirstOrDefault(c => c.Type == "Role")?.Value;
+
+                if (userId == null)
+                {
+                    return Unauthorized("User not logged in!");
+                }
+
+                await Mediator.Send(new UpdatePlaylist.Command { Id = id, request = request, UserId = (Guid)userId, Role = userRole, ImageFolderPath = ImageFolderPath });
+                return Ok(new { message = "Playlist successfully updated!", id = id });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ex);
+            }
+            catch (NotExistingObjectExceptions ex)
+            {
+                return NotFound(ex);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
     }
 }
