@@ -213,10 +213,12 @@ using (var scope = app.Services.CreateScope())
 
 if (app.Environment.IsProduction())
 {
+    Console.WriteLine("Production cors.");
     app.UseCors("Prod");
 }
 else
 {
+    Console.WriteLine("Dev cors.");
     app.UseCors("AllowLocalHost");
 }
 
