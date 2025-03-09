@@ -44,6 +44,11 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod()
     );
+    options.AddPolicy("Prod", builder =>
+        builder.WithOrigins("http://localhost:3000", "http://meloptica.stream:3000", "http://185.55.243.198:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+    );
 });
 
 // Add services to the container.
@@ -206,7 +211,14 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.UseCors("AllowLocalHost");
+if (app.Environment.IsProduction())
+{
+    app.UseCors("Prod");
+}
+else
+{
+    app.UseCors("AllowLocalHost");
+}
 
 
 // Configure the HTTP request pipeline.
