@@ -75,11 +75,11 @@ namespace API.Controllers
         }
 
         [Authorize(Policy = "Admin")]
-        [HttpPost("remove-song")]
+        [HttpPost("{id}/remove")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> removeSong([FromForm] Guid id)
+        public async Task<IActionResult> removeSong(Guid id)
         {
             try
             {
