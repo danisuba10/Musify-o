@@ -40,7 +40,7 @@ Console.WriteLine("JWT Audience: " + jwtSettings.Audience);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocalHost", builder =>
-        builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://192.168.0.184:5173")
+        builder.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.0.184:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
     );
