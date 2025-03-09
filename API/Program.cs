@@ -48,6 +48,7 @@ builder.Services.AddCors(options =>
         builder.WithOrigins("http://localhost:3000", "http://meloptica.stream:3000", "http://185.55.243.198:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
+            .AllowCredentials()
     );
 });
 
