@@ -9,7 +9,7 @@ EXPOSE 443
 FROM ${DOTNET_SDK} AS build
 WORKDIR /src
 
-ENV ASPNETCORE_ENVIRONMENT=Development
+ENV ASPNETCORE_ENVIRONMENT=Production
 
 COPY ["API/API.csproj", "API/"]
 COPY ["Application/Application.csproj", "Application/"]
