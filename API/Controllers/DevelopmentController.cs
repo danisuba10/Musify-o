@@ -9,12 +9,15 @@ using Domain;
 using System.Runtime.CompilerServices;
 using Application.Users;
 using Application.DataTransferObjects.Requests;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
     [Route("dev")]
     public class DevelopmentController : BaseController
     {
+
+        [Authorize(Policy = "Admin")]
         [HttpPost("DeleteAllDataFromMusicTables")]
         public async Task<IActionResult> DeleteAllDataFromMusicTables()
         {
@@ -22,18 +25,20 @@ namespace API.Controllers
             return Ok();
         }
 
-        [HttpPost("TestAlbumSearch")]
-        public async Task<IActionResult> TestAlbumSearch()
-        {
-            List<String> songs = new List<String>();
-            List<String> artists = new List<String>();
-            songs.Add("obod");
-            songs.Add("MUL");
-            List<Album>? albums = await Mediator.Send(new SearchAlbums.Query { Name = "Trip", Songs = songs, IncludeSongs = true });
-            int a = 0;
-            return Ok();
-        }
+        // [HttpPost("TestAlbumSearch")]
+        // public async Task<IActionResult> TestAlbumSearch()
+        // {
+        //     List<String> songs = new List<String>();
+        //     List<String> artists = new List<String>();
+        //     songs.Add("obod");
+        //     songs.Add("MUL");
+        //     List<Album>? albums = await Mediator.Send(new SearchAlbums.Query { Name = "Trip", Songs = songs, IncludeSongs = true });
+        //     int a = 0;
+        //     return Ok();
+        // }
 
+
+        [Authorize(Policy = "Admin")]
         [HttpPost("make-admin")]
         public async Task<IActionResult> makeAdmin(Guid id)
         {
