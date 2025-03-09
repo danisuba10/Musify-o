@@ -294,15 +294,18 @@ namespace API.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> getAlbumById(Guid id)
         {
-            Album? album = await Mediator.Send(new GetAlbumByID.Query { Id = id, IncludeArtists = true, IncludeSongs = true });
 
-            if (album == null)
+            try
             {
-                return NotFound("Album with this ID not found!");
+                Album album = await Mediator.Send(new GetAlbumByID.Query { Id = id, IncludeArtists = true, IncludeSongs = true });
+                ImageAccent? imageAccent = await Mediator.Send(new GetImageAccentByPath.Query
+                { Path = Path.Combine(ImageFolderPath, album.ImageLocation) });
+                return Ok(AlbumMapper.MapToResponse(album, imageAccent));
             }
-            ImageAccent? imageAccent = await Mediator.Send(new GetImageAccentByPath.Query
-            { Path = Path.Combine(ImageFolderPath, album.ImageLocation) });
-            return Ok(AlbumMapper.MapToResponse(album, imageAccent));
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
         [Authorize(Policy = "Admin")]

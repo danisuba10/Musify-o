@@ -51,7 +51,7 @@ namespace Application.Albums
 
                 if (album == null)
                 {
-                    throw new Exception($"Album with ID {query.Id} not found");
+                    throw new KeyNotFoundException($"Album with ID {query.Id} not found");
                 }
 
                 return album;
