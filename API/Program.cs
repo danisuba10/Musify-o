@@ -231,7 +231,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Docker") |
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
