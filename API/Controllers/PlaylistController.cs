@@ -105,12 +105,12 @@ namespace API.Controllers
         }
 
         [Authorize]
-        [HttpPost("remove")]
+        [HttpPost("{id}/remove")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> removePlaylist([FromForm] Guid Id, CancellationToken cancellationToken)
+        public async Task<IActionResult> removePlaylist(Guid id, CancellationToken cancellationToken)
         {
             try
             {
@@ -122,7 +122,7 @@ namespace API.Controllers
 
                 var userRole = User.Claims.FirstOrDefault(c => c.Type == "Role")?.Value;
 
-                await Mediator.Send(new RemovePlaylist.Command { Id = Id, UserId = userId, Role = userRole });
+                await Mediator.Send(new RemovePlaylist.Command { Id = id, UserId = userId, Role = userRole });
                 return Ok("Playlist successfully removed!");
             }
             catch (NotExistingObjectExceptions ex)

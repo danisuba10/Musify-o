@@ -309,7 +309,7 @@ namespace API.Controllers
         }
 
         [Authorize(Policy = "Admin")]
-        [HttpPost("remove-album")]
+        [HttpPost("{id}/remove")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(string))]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> removeAlbum(Guid id)
