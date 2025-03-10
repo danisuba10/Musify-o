@@ -32,7 +32,7 @@ namespace API.Controllers
         public async Task<IActionResult> getImage(string path)
         {
             string decodedPath = Uri.UnescapeDataString(path);
-            if (decodedPath.StartsWith("/artist") || decodedPath.StartsWith("/album"))
+            if (decodedPath.StartsWith("/artist") || decodedPath.StartsWith("/album") || decodedPath.StartsWith("/playlist"))
             {
                 decodedPath = decodedPath.Substring(1);
             }
