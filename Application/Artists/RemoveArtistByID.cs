@@ -11,12 +11,12 @@ namespace Application.Artists
 {
     public class RemoveArtistByID
     {
-        public class Command : IRequest
+        public class Command : IRequest<string>
         {
             public Guid Id { get; set; }
         }
 
-        public class Handler : IRequestHandler<Command>
+        public class Handler : IRequestHandler<Command, string>
         {
             private readonly ApplicationDbContext _context;
             public Handler(ApplicationDbContext context)
@@ -24,20 +24,22 @@ namespace Application.Artists
                 _context = context;
             }
 
-            public async Task<Unit> Handle(Command command, CancellationToken cancellationToken)
+            public async Task<string> Handle(Command command, CancellationToken cancellationToken)
             {
-                var album = await _context.Artists
+                var artist = await _context.Artists
                     .FirstOrDefaultAsync(art => art.Id == command.Id);
 
-                if (album == null)
+                if (artist == null)
                 {
                     throw new Exception("Album does not exist!Can't be deleted!");
                 }
 
-                _context.Artists.Remove(album);
+                string imageLocation = artist.ImageLocation;
+
+                _context.Artists.Remove(artist);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                return Unit.Value;
+                return imageLocation;
             }
         }
     }

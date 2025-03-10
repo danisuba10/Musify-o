@@ -12,13 +12,13 @@ namespace Application.Playlists
 {
     public class RemovePlaylist
     {
-        public class Command : IRequest<Unit>
+        public class Command : IRequest<string>
         {
             public Guid Id { get; set; }
             public Guid UserId { get; set; }
             public string? Role { get; set; }
         }
-        public class Handler : IRequestHandler<Command, Unit>
+        public class Handler : IRequestHandler<Command, string>
         {
             ApplicationDbContext _context;
             public Handler(ApplicationDbContext context)
@@ -26,7 +26,7 @@ namespace Application.Playlists
                 _context = context;
             }
 
-            public async Task<Unit> Handle(Command cmd, CancellationToken cancellationToken)
+            public async Task<string> Handle(Command cmd, CancellationToken cancellationToken)
             {
                 var playlist = await _context.Playlists
                     .FirstOrDefaultAsync(pl => pl.Id == cmd.Id);
@@ -36,6 +36,8 @@ namespace Application.Playlists
                     throw new NotExistingObjectExceptions("Playlist");
                 }
 
+                string imageLocation = playlist.ImageLocation;
+
                 if (playlist.UserId != cmd.UserId && !(cmd.Role?.Equals("Admin") ?? false))
                 {
                     throw new UnauthorizedAccessException();
@@ -44,7 +46,7 @@ namespace Application.Playlists
                 _context.Playlists.Remove(playlist);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                return Unit.Value;
+                return imageLocation;
             }
         }
     }
