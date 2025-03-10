@@ -185,7 +185,8 @@ namespace API.Controllers
         {
             try
             {
-                await Mediator.Send(new RemoveArtistByID.Command { Id = id });
+                string imageLocation = await Mediator.Send(new RemoveArtistByID.Command { Id = id });
+                await Mediator.Send(new DeleteImage.Command { Path = Path.Combine(ImageFolderPath, imageLocation) });
                 return Ok("Artist successfully removed!");
             }
             catch (Exception e)
