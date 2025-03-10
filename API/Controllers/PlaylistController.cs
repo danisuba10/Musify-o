@@ -74,7 +74,16 @@ namespace API.Controllers
                 {
                     try
                     {
-                        imagePath = (await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, song.Album.ImageLocation) }))?.ImagePath ?? "";
+                        var fullPath = Path.Combine(ImageFolderPath, song.Album.ImageLocation);
+                        var image = await System.IO.File.ReadAllBytesAsync(Path.Combine(ImageFolderPath, song.Album.ImageLocation));
+                        var stream = new MemoryStream(image);
+                        var formFile = new FormFile(stream, 0, stream.Length, "formFile", Path.GetFileName(song.Album.ImageLocation))
+                        {
+                            Headers = new HeaderDictionary(),
+                            ContentType = "image/jpeg"
+                        };
+                        await AddImage(formFile, id.ToString());
+                        imagePath = Path.Combine("playlist", id.ToString() + ".jpg");
                     }
                     catch (Exception ex)
                     {
@@ -122,7 +131,8 @@ namespace API.Controllers
 
                 var userRole = User.Claims.FirstOrDefault(c => c.Type == "Role")?.Value;
 
-                await Mediator.Send(new RemovePlaylist.Command { Id = id, UserId = userId, Role = userRole });
+                string imageLocation = await Mediator.Send(new RemovePlaylist.Command { Id = id, UserId = userId, Role = userRole });
+                await Mediator.Send(new DeleteImage.Command { Path = Path.Combine(ImageFolderPath, imageLocation) });
                 return Ok("Playlist successfully removed!");
             }
             catch (NotExistingObjectExceptions ex)
