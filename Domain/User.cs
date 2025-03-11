@@ -10,6 +10,8 @@ namespace Domain
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public required string Email { get; set; }
+        [Required]
+        public string ImageLocation { get; set; } = string.Empty;
         public string? PasswordHash { get; set; }
         public string Role { get; set; } = "User";
         public string DisplayName { get; set; } = String.Empty;
