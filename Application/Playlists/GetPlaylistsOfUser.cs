@@ -14,6 +14,7 @@ namespace Application.Playlists
         public class Query : IRequest<List<Playlist>>
         {
             public required Guid UserId { get; set; }
+            public int Count { get; set; } = 10;
         }
         public class Handler : IRequestHandler<Query, List<Playlist>>
         {
@@ -24,6 +25,8 @@ namespace Application.Playlists
             }
             public async Task<List<Playlist>> Handle(Query query, CancellationToken cancellationToken)
             {
+                int count = query.Count <= 30 ? query.Count : 15;
+
                 var user = await _context.Users
                     .FirstOrDefaultAsync(u => u.Id == query.UserId, cancellationToken);
 
@@ -37,8 +40,9 @@ namespace Application.Playlists
                 List<Guid>? lastPlayedPlaylists = await _context.PlaylistPlayRecords
                     .Where(pr => pr.UserId == query.UserId)
                     .OrderByDescending(pr => pr.Timestamp)
-                    .Take(10)
                     .Select(pr => pr.PlayedItemId)
+                    .Distinct()
+                    .Take(count)
                     .ToListAsync(cancellationToken);
 
                 if (lastPlayedPlaylists == null)
@@ -51,12 +55,12 @@ namespace Application.Playlists
                     playlistIds.AddRange(lastPlayedPlaylists);
                 }
 
-                if (playlistIds.Count < 10)
+                if (playlistIds.Count < count)
                 {
                     List<Guid>? remainingPlaylists = await _context.Playlists
                         .Where(p => p.UserId == query.UserId && !lastPlayedPlaylists.Contains(p.Id))
                         .OrderBy(p => p.CreatedAt)
-                        .Take(10 - lastPlayedPlaylists.Count)
+                        .Take(count - lastPlayedPlaylists.Count)
                         .Select(p => p.Id)
                         .ToListAsync(cancellationToken);
 

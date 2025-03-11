@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.Exceptions.Common;
 using Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,11 @@ namespace Application.Users
             {
                 var user = await _context.Users
                     .FirstOrDefaultAsync(u => u.Id == query.Id, cancellationToken);
+
+                if (user == null)
+                {
+                    throw new NotExistingObjectExceptions("User");
+                }
 
                 return user;
             }

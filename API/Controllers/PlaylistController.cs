@@ -247,8 +247,9 @@ namespace API.Controllers
             try
             {
                 Playlist playlist = await Mediator.Send(new GetPlaylistById.Query { Id = id, UserId = userId, Role = userRole });
-                ImageAccent? accent = await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, playlist.ImageLocation) });
-                return Ok(PlaylistMapper.MapToResponse(playlist, accent, playlist.User));
+                ImageAccent? playlistAccent = await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, playlist.ImageLocation) });
+                ImageAccent? userAccent = await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, playlist.User.ImageLocation) });
+                return Ok(PlaylistMapper.MapToResponse(playlist, playlistAccent, playlist.User, userAccent));
             }
             catch (UnauthorizedAccessException ex)
             {

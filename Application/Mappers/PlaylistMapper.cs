@@ -11,7 +11,7 @@ namespace Application.Mappers
 {
     public class PlaylistMapper
     {
-        public static PlaylistResponse MapToResponse(Playlist playlist, ImageAccent? imageAccent, User? user)
+        public static PlaylistResponse MapToResponse(Playlist playlist, ImageAccent? playlistImageAccent, User? user, ImageAccent? userImageAccent)
         {
             PlaylistResponse response = new PlaylistResponse
             {
@@ -34,18 +34,19 @@ namespace Application.Mappers
                     }).ToList(), true),
             };
 
-            if (imageAccent != null)
+            if (playlistImageAccent != null)
             {
                 response.Image = new ImageResponse();
-                response.Image.ImageLocation = imageAccent.ImagePath;
-                response.Image.LowColor = imageAccent.LowAccent;
-                response.Image.MiddleColor = imageAccent.MiddleAccent;
-                response.Image.HighColor = imageAccent.HighAccent;
+                response.Image.ImageLocation = playlistImageAccent.ImagePath;
+                response.Image.LowColor = playlistImageAccent.LowAccent;
+                response.Image.MiddleColor = playlistImageAccent.MiddleAccent;
+                response.Image.HighColor = playlistImageAccent.HighAccent;
             }
 
             if (user != null)
             {
-                response.User = UserMapper.mapToResponseCompact(user);
+
+                response.User = UserMapper.mapToResponseCompactWithImage(user, userImageAccent);
             }
 
             return response;
@@ -53,7 +54,7 @@ namespace Application.Mappers
 
         public static List<PlaylistResponse> MapToResponseList(List<PlaylistWithImageAccent> playlists, User user)
         {
-            return playlists.Select(playlist => MapToResponse(playlist.Playlist, playlist.ImageAccent, user)).ToList();
+            return playlists.Select(playlist => MapToResponse(playlist.Playlist, playlist.ImageAccent, user, null)).ToList();
         }
 
         public static SearchResult MapToSearchResult(Playlist playlist)

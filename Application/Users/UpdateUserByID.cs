@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Application.Constants;
 using Application.DataTransferObjects.Requests;
+using Application.Images;
 using MediatR;
 using Persistence;
 
@@ -14,6 +15,7 @@ namespace Application.Users
         public class Query : IRequest
         {
             public required UpdateUserRequest Request { get; set; }
+            public string? ImageFolderPath { get; set; }
         }
         public class Handler : IRequestHandler<Query>
         {
@@ -46,6 +48,32 @@ namespace Application.Users
                         throw new Exception("Update user exception: Invalid role!");
                     }
                     user.Role = query.Request.Role;
+                }
+
+                if (!String.IsNullOrWhiteSpace(query.Request.Email))
+                {
+                    user.Email = query.Request.Email;
+                }
+
+                if (query.Request.File != null)
+                {
+                    try
+                    {
+                        if (String.IsNullOrWhiteSpace(query.ImageFolderPath))
+                        {
+                            throw new ArgumentNullException("Image folder path not set, even though we are trying to upload image.");
+                        }
+                        await _mediator.Send(new UploadImage.Command { Name = query.Request.Id.ToString(), formFile = query.Request.File, Path = Path.Combine(query.ImageFolderPath, "user") });
+                        user.ImageLocation = Path.Combine("user", user.Id + ".jpg");
+                    }
+                    catch (ArgumentNullException an)
+                    {
+                        throw new Exception("Update user error: " + an.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception("Update user error: Image upload failed:\n", ex);
+                    }
                 }
 
                 _context.Users.Update(user);
