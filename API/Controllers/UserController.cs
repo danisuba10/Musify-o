@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Reflection.Metadata.Ecma335;
 using System.Security.Authentication;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Application.DataTransferObjects.Requests;
+using Application.DataTransferObjects.Requests.User;
+using Application.Exceptions.Common;
 using Application.Exceptions.User;
 using Application.ImageAccents;
 using Application.Mappers;
@@ -26,6 +30,10 @@ namespace API.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> RegisterUser([FromForm] RegisterRequest request, CancellationToken cancellationToken)
         {
+            if (!IsValidEmail(request.Email))
+            {
+                return BadRequest("Invalid email address.");
+            }
 
             try
             {
@@ -46,7 +54,26 @@ namespace API.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
 
+        private bool IsValidEmail(string email)
+        {
+            var regex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+            if (!regex.IsMatch(email))
+            {
+                return false;
+            }
+
+            try
+            {
+                var domain = email.Split('@')[1];
+                var mxRecords = Dns.GetHostEntry(domain).AddressList;
+                return mxRecords.Length > 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -123,6 +150,113 @@ namespace API.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
+            }
+        }
+
+
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpGet("{id}/profile/playlists")]
+        public async Task<IActionResult> getTopPlaylists(Guid id)
+        {
+            try
+            {
+                Guid? userId = null;
+                if (Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out Guid parsedUserId))
+                {
+                    userId = parsedUserId;
+                }
+
+                var userRole = User.Claims.FirstOrDefault(c => c.Type == "Role")?.Value;
+
+                var playlists = await Mediator.Send(new GetTopPlaylistsOfUser.Query { UserId = id, RequesterUserId = userId, RequesterRole = userRole });
+                if (playlists == null || playlists.Count == 0)
+                {
+                    return NotFound("No playlists found!");
+                }
+
+                return Ok(PlaylistMapper.MapToSearchResultList(playlists));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e);
+            }
+        }
+
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpGet("{id}/profile")]
+        public async Task<IActionResult> getUserProfile(Guid id)
+        {
+            try
+            {
+                var user = await Mediator.Send(new GetUserById.Query { Id = id });
+                var imageAccent = await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, user.ImageLocation) });
+                return Ok(UserMapper.mapToProfileRespose(user, imageAccent));
+            }
+            catch (NotExistingObjectExceptions ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpPost("{id}/profile/update")]
+        [Authorize(Policy = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> updateUserProfile(Guid id, [FromForm] UpdateUserProfileRequest request)
+        {
+            try
+            {
+                await Mediator.Send(new UpdateUserByID.Query
+                {
+                    Request = new UpdateUserRequest { Id = id, DisplayName = request.DisplayName, File = request.File },
+                    ImageFolderPath = ImageFolderPath,
+                });
+
+                return Ok(new { Id = id, Message = "User with id: " + id.ToString() + " successfully modified!" });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpPost("profile/update")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> updateUserProfile([FromForm] UpdateUserProfileRequest request)
+        {
+            try
+            {
+                Guid userId;
+                if (!Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out userId))
+                {
+                    return Unauthorized("User identification failed!");
+                }
+
+                await Mediator.Send(new UpdateUserByID.Query
+                {
+                    Request = new UpdateUserRequest { Id = userId, DisplayName = request.DisplayName, File = request.File },
+                    ImageFolderPath = ImageFolderPath,
+                });
+
+                return Ok(new { Id = userId, Message = "User with id: " + userId.ToString() + " successfully modified!" });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
             }
         }
 
