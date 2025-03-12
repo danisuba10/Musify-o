@@ -194,7 +194,8 @@ namespace API.Controllers
             {
                 var user = await Mediator.Send(new GetUserById.Query { Id = id });
                 var imageAccent = await Mediator.Send(new GetImageAccentByPath.Query { Path = Path.Combine(ImageFolderPath, user.ImageLocation) });
-                return Ok(UserMapper.mapToProfileRespose(user, imageAccent));
+                int publicPlaylistCount = await Mediator.Send(new PublicPlaylistCountOfUser.Query { UserId = id });
+                return Ok(UserMapper.mapToProfileRespose(user, imageAccent, publicPlaylistCount));
             }
             catch (NotExistingObjectExceptions ex)
             {

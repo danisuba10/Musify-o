@@ -38,14 +38,15 @@ namespace Application.Mappers
             return response;
         }
 
-        public static ProfileResponse mapToProfileRespose(User user, ImageAccent? imageAccent)
+        public static ProfileResponse mapToProfileRespose(User user, ImageAccent? imageAccent, int publicPlaylistCount)
         {
             ProfileResponse response = new ProfileResponse
             {
                 Id = user.Id,
                 Image = new ImageResponse { ImageLocation = user.ImageLocation },
                 Name = String.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName,
-                Followers = 0
+                Followers = 0,
+                PublicPlaylistCount = publicPlaylistCount
             };
 
             if (imageAccent != null)

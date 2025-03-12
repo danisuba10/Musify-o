@@ -11,5 +11,6 @@ namespace Application.DataTransferObjects.Responses
         public required String Name { get; set; }
         public ImageResponse? Image { get; set; }
         public required int Followers { get; set; }
+        public required int PublicPlaylistCount { get; set; }
     }
 }
