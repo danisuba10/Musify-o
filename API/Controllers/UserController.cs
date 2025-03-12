@@ -6,8 +6,10 @@ using System.Reflection.Metadata.Ecma335;
 using System.Security.Authentication;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Application.DataTransferObjects;
 using Application.DataTransferObjects.Requests;
 using Application.DataTransferObjects.Requests.User;
+using Application.DataTransferObjects.Responses;
 using Application.Exceptions.Common;
 using Application.Exceptions.User;
 using Application.ImageAccents;
@@ -217,6 +219,11 @@ namespace API.Controllers
         {
             try
             {
+                if (String.IsNullOrWhiteSpace(request.DisplayName))
+                {
+                    return BadRequest("Displayname empty!");
+                }
+
                 await Mediator.Send(new UpdateUserByID.Query
                 {
                     Request = new UpdateUserRequest { Id = id, DisplayName = request.DisplayName, File = request.File },
@@ -300,6 +307,45 @@ namespace API.Controllers
             {
                 return BadRequest(e);
             }
+        }
+
+        [HttpGet("search")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> searchUsers([FromQuery] SearchRequest searchRequest)
+        {
+
+            try
+            {
+                Guid? userId = null;
+                if (Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out Guid parsedUserId))
+                {
+                    userId = parsedUserId;
+                }
+
+                var userRole = User.Claims.FirstOrDefault(c => c.Type == "Role")?.Value;
+
+                List<User> users = await Mediator.Send(new SearchUser.Query { Request = searchRequest });
+                var results = users.Select(UserMapper.MapToSearchResult).ToList();
+
+                if (results.Count == 0)
+                {
+                    return NotFound("No results were found");
+                }
+
+                return Ok(new SearchResponse
+                {
+                    SearchResults = results,
+                    LastCreatedAt = users.Last().CreatedAt,
+                    LastName = users.Last().DisplayName
+                });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e);
+            }
+
         }
     }
 }

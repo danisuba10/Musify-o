@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Application.DataTransferObjects;
 using Application.DataTransferObjects.Responses;
 using AutoMapper;
 using Domain;
@@ -57,6 +58,17 @@ namespace Application.Mappers
             }
 
             return response;
+        }
+
+        public static SearchResult MapToSearchResult(User user)
+        {
+            return new SearchResult
+            {
+                Id = user.Id,
+                Name = user.DisplayName,
+                Type = "User",
+                ImageLocation = user.ImageLocation
+            };
         }
     }
 }
