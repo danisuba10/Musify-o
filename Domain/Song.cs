@@ -13,6 +13,8 @@ namespace Domain
         [StringLength(256)]
         public string Title { get; set; } = string.Empty;
         [Required]
+        public string SoundLocation { get; set; } = string.Empty;
+        [Required]
         public TimeSpan Duration { get; set; } = TimeSpan.FromSeconds(0);
         public Guid? AlbumId { get; set; } = null;
         public Album Album { get; set; } = null!;
