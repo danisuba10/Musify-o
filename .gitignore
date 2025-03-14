@@ -26,3 +26,4 @@ api/Controllers/WeatherForecastController.cs
 api/Images
 .env
 .env copy
+API/sounds/*
