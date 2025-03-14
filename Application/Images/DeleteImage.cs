@@ -19,11 +19,9 @@ namespace Application.Images
 
         public class Handler : IRequestHandler<Command>
         {
-            private readonly ApplicationDbContext _context;
             private readonly IMediator _mediator;
-            public Handler(ApplicationDbContext context, IMediator mediator)
+            public Handler(IMediator mediator)
             {
-                _context = context;
                 _mediator = mediator;
             }
 
