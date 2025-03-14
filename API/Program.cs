@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Application.Services;
+using Application.Sounds;
 
 Env.Load("../../.env");
 
@@ -167,6 +168,8 @@ builder.Services.AddMediatR(typeof(GlobalSearch.Handler).Assembly);
 
 builder.Services.AddMediatR(typeof(UploadImage.Handler).Assembly);
 builder.Services.AddMediatR(typeof(ResizeImage.Handler).Assembly);
+
+builder.Services.AddMediatR(typeof(UploadSound.Handler).Assembly);
 
 builder.Services.AddAutoMapper(typeof(AlbumMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(SongMappingProfile).Assembly);
