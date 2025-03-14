@@ -12,6 +12,7 @@ using Application.Exceptions.Song;
 using Application.Mappers;
 using Application.PlayRecords;
 using Application.Songs;
+using Application.Sounds;
 using Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,26 @@ namespace API.Controllers
         //     return songResponses;
         // }
 
+        private async Task<String> AddSound(IFormFile file, string name)
+        {
+            string imagePath;
+            try
+            {
+                imagePath = await Mediator.Send(new UploadSound.Command
+                {
+                    FormFile = file,
+                    Path = Path.Combine(SoundFolderPath, "song"),
+                    Name = name
+                });
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            return Path.Combine("song", name + ".opus");
+        }
+
         [Authorize(Policy = "Admin")]
         [HttpPost("add-song")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -49,9 +70,35 @@ namespace API.Controllers
         {
             try
             {
-                Guid id = await Mediator.Send(new AddSong.Command { songRequest = request });
+                Guid id = Guid.NewGuid();
+                Song song = new Song
+                {
+                    Id = id,
+                    Title = request.Title,
+                    PositionInAlbum = request.PositionInAlbum ?? -1,
+                    AlbumId = request.AlbumId,
+                    Duration = TimeSpan.FromSeconds(request.Duration)
+                };
 
-                string errorMessage = "";
+                string soundPath = "";
+                string? errorMessage = null;
+
+                if (request.SoundFile != null)
+                {
+                    try
+                    {
+                        soundPath = await AddSound(request.SoundFile, id.ToString());
+                        song.SoundLocation = soundPath;
+
+                    }
+                    catch (Exception ex)
+                    {
+                        errorMessage += "Sound upload error:" + ex.Message;
+                    }
+                }
+
+                await Mediator.Send(new AddSong.Command { Song = song });
+
                 if (request.ArtistIds != null && request.ArtistIds.Count > 0)
                 {
                     int failures = await Mediator.Send(new AddArtistsToSong.Query { SongId = id, ArtistIds = request.ArtistIds });
@@ -83,8 +130,13 @@ namespace API.Controllers
         {
             try
             {
-                await Mediator.Send(new RemoveSongByID.Command { Id = id });
+                string soundLocation = await Mediator.Send(new RemoveSongByID.Command { Id = id });
+                await Mediator.Send(new DeleteSound.Command { Path = Path.Combine(SoundFolderPath, soundLocation) });
                 return Ok("Song removed succesfully!");
+            }
+            catch (FileNotFoundException)
+            {
+                return BadRequest("Song successfully removed, but sound file failed to be deleted.");
             }
             catch (Exception e)
             {
