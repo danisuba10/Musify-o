@@ -23,17 +23,31 @@ namespace Application.Development
             {
                 var Songs = _context.Songs;
                 _context.Songs.RemoveRange(Songs);
+
                 var Albums = _context.Albums;
                 _context.Albums.RemoveRange(Albums);
+
                 var Artists = _context.Artists;
                 _context.Artists.RemoveRange(Artists);
+
                 var SongArtistRelations = _context.SongArtistRelations;
                 _context.SongArtistRelations.RemoveRange(SongArtistRelations);
+
                 var AlbumArtistRelations = _context.AlbumArtistRelations;
                 _context.AlbumArtistRelations.RemoveRange(AlbumArtistRelations);
-                var ImageAccents = _context.ImageAccents;
+
+                var ImageAccents = _context.ImageAccents
+                    .Where(ia => ia.ImagePath.Contains("album") || ia.ImagePath.Contains("artist") || ia.ImagePath.Contains("playlist"));
                 _context.ImageAccents.RemoveRange(ImageAccents);
-                await _context.SaveChangesAsync(cancellationToken);
+
+                var Playlists = _context.Playlists;
+                _context.Playlists.RemoveRange(Playlists);
+
+                var PlaylistSongRelations = _context.PlaylistSongRelations;
+                _context.PlaylistSongRelations.RemoveRange(PlaylistSongRelations);
+
+                var PlayRecords = _context.PlayRecords;
+                _context.PlayRecords.RemoveRange(PlayRecords);
 
                 return Unit.Value;
             }
