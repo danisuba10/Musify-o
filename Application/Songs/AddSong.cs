@@ -13,7 +13,7 @@ namespace Application.Songs
     {
         public class Command : IRequest<Guid>
         {
-            public required AddSongRequest songRequest;
+            public required Song Song;
         };
 
         public class Handler : IRequestHandler<Command, Guid>
@@ -25,17 +25,9 @@ namespace Application.Songs
             }
             public async Task<Guid> Handle(Command command, CancellationToken cancellationToken)
             {
-                Song song = new Song
-                {
-                    Id = Guid.NewGuid(),
-                    Title = command.songRequest.Title,
-                    PositionInAlbum = command.songRequest.PositionInAlbum ?? -1,
-                    AlbumId = command.songRequest.AlbumId,
-                    Duration = TimeSpan.FromSeconds(command.songRequest.Duration)
-                };
-                _context.Songs.Add(song);
+                _context.Songs.Add(command.Song);
                 await _context.SaveChangesAsync();
-                return song.Id;
+                return command.Song.Id;
             }
         }
     }
