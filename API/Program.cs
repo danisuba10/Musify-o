@@ -170,6 +170,7 @@ builder.Services.AddMediatR(typeof(UploadImage.Handler).Assembly);
 builder.Services.AddMediatR(typeof(ResizeImage.Handler).Assembly);
 
 builder.Services.AddMediatR(typeof(UploadSound.Handler).Assembly);
+builder.Services.AddMediatR(typeof(DeleteSound.Handler).Assembly);
 
 builder.Services.AddAutoMapper(typeof(AlbumMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(SongMappingProfile).Assembly);
