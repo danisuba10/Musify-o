@@ -11,18 +11,18 @@ namespace Application.Songs
 {
     public class RemoveSongByID
     {
-        public class Command : IRequest
+        public class Command : IRequest<string>
         {
             public Guid Id { get; set; }
         }
-        public class Handler : IRequestHandler<Command>
+        public class Handler : IRequestHandler<Command, string>
         {
             private readonly ApplicationDbContext _context;
             public Handler(ApplicationDbContext context)
             {
                 _context = context;
             }
-            public async Task<Unit> Handle(Command command, CancellationToken cancellationToken)
+            public async Task<string> Handle(Command command, CancellationToken cancellationToken)
             {
                 var Song = await _context.Songs
                     .FirstOrDefaultAsync(s => s.Id == command.Id, cancellationToken);
@@ -32,10 +32,12 @@ namespace Application.Songs
                     throw new SongDoesNotExistException();
                 }
 
+                string soundLocation = Song.SoundLocation;
+
                 _context.Songs.Remove(Song);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                return Unit.Value;
+                return soundLocation;
             }
         }
     }
