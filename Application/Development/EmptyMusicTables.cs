@@ -49,6 +49,8 @@ namespace Application.Development
                 var PlayRecords = _context.PlayRecords;
                 _context.PlayRecords.RemoveRange(PlayRecords);
 
+                await _context.SaveChangesAsync(cancellationToken);
+
                 return Unit.Value;
             }
 
