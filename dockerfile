@@ -1,10 +1,13 @@
 ARG DOTNET_RUNTIME=mcr.microsoft.com/dotnet/aspnet:8.0
 ARG DOTNET_SDK=mcr.microsoft.com/dotnet/sdk:8.0
 
+
 FROM ${DOTNET_RUNTIME} AS base
 WORKDIR /app
 EXPOSE 80
 EXPOSE 443
+
+RUN apt-get update && apt-get install -y ffmpeg
 
 FROM ${DOTNET_SDK} AS build
 WORKDIR /src
@@ -23,9 +26,6 @@ COPY . .
 
 WORKDIR /src/API
 RUN dotnet build "API.csproj" -c Release -o /app/build
-
-# RUN dotnet ef migrations add MoveDBToDocker --context ApplicationDbContext --project /src/Persistence --startup-project /src/API
-# RUN dotnet ef database update --context ApplicationDbContext --project /src/Persistence --startup-project /src/API
 
 FROM build as publish
 WORKDIR /src/API

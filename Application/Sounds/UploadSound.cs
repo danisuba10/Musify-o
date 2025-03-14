@@ -46,6 +46,13 @@ namespace Application.Sounds
 
             private async Task TranscodeToOpus(string inputFilePath, string outputFilePath, CancellationToken cancellationToken)
             {
+                var outputDirectory = Path.GetDirectoryName(outputFilePath);
+                if (!string.IsNullOrEmpty(outputDirectory) && !Directory.Exists(outputDirectory))
+                {
+                    Directory.CreateDirectory(outputDirectory);
+                }
+
+
                 await FFMpegArguments
                     .FromFileInput(inputFilePath)
                     .OutputToFile(outputFilePath, true, options => options
