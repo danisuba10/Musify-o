@@ -14,7 +14,7 @@ namespace API.Controllers
     public class SoundController : BaseController
     {
 
-        [HttpDelete("{path}")]
+        [HttpDelete("{path}/delete")]
         public async Task<IActionResult> deleteSound(string path)
         {
             try
