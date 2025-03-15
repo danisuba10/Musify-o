@@ -187,12 +187,7 @@ namespace API.Controllers
                 List<Album> result = await Mediator.Send(new SearchArtistAlbums.Query { Request = request, ArtistId = id });
                 if (result.Count == 0)
                 {
-                    return Ok(new SearchResponse
-                    {
-                        SearchResults = new List<SearchResult>(),
-                        LastName = null,
-                        LastCreatedAt = null
-                    });
+                    return NotFound("No results!");
                 }
                 List<SearchResult> artists = AlbumMapper.MapToSearchResultList(result);
                 return Ok(new SearchResponse
