@@ -9,11 +9,10 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
-    [Authorize(Policy = "Admin")]
     [Route("sound/")]
     public class SoundController : BaseController
     {
-
+        [Authorize(Policy = "Admin")]
         [HttpDelete("{path}/delete")]
         public async Task<IActionResult> deleteSound(string path)
         {
