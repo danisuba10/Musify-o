@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Domain;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Persistence;
 
 namespace Application.Albums
@@ -22,6 +23,7 @@ namespace Application.Albums
             private readonly IMediator _mediator;
             public Handler(ApplicationDbContext context, IMediator mediator)
             {
+                _context = context;
                 _mediator = mediator;
             }
             public async Task<Unit> Handle(Command cmd, CancellationToken cancellationToken)
