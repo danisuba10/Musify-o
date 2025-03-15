@@ -4,12 +4,29 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using FFMpegCore;
+using Application.Sounds;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
+    [Authorize(Policy = "Admin")]
     [Route("sound/")]
     public class SoundController : BaseController
     {
+
+        [HttpDelete("{path}")]
+        public async Task<IActionResult> deleteSound(string path)
+        {
+            try
+            {
+                await Mediator.Send(new DeleteSound.Command { Path = Path.Combine(SoundFolderPath, path) });
+                return Ok("Sound file successfully deleted!");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e);
+            }
+        }
 
         [HttpGet("{path}")]
         public async Task<IActionResult> getSound(string path, [FromQuery] string format = "opus", [FromQuery] int bitrate = 128)

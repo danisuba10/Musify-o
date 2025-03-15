@@ -22,9 +22,11 @@ namespace Application.Sounds
                 if (File.Exists(filePath))
                 {
                     File.Delete(filePath);
+                    Console.WriteLine("Sound deleted!!");
                 }
                 else
                 {
+                    Console.WriteLine("Sound does not exist!!");
                     throw new FileNotFoundException("File does not exist at path!");
                 }
 

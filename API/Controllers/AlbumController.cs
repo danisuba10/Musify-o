@@ -316,8 +316,7 @@ namespace API.Controllers
         {
             try
             {
-                string imageLocation = await Mediator.Send(new RemoveAlbumByID.Command { Id = id });
-                await Mediator.Send(new DeleteImage.Command { Path = Path.Combine(ImageFolderPath, imageLocation) });
+                await Mediator.Send(new RemoveAlbumByID.Command { Id = id, ImageFolderPath = ImageFolderPath, SoundFolderPath = SoundFolderPath });
             }
             catch (Exception e)
             {

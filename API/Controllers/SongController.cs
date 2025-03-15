@@ -113,7 +113,7 @@ namespace API.Controllers
                     return BadRequest(new { Id = id, Message = errorMessage });
                 }
 
-                return Ok(new { Id = id, Message = "Artist added successfully!" });
+                return Ok(new { Id = id, Message = "Song added successfully!" });
             }
             catch (Exception e)
             {
@@ -130,8 +130,7 @@ namespace API.Controllers
         {
             try
             {
-                string soundLocation = await Mediator.Send(new RemoveSongByID.Command { Id = id });
-                await Mediator.Send(new DeleteSound.Command { Path = Path.Combine(SoundFolderPath, soundLocation) });
+                string soundLocation = await Mediator.Send(new RemoveSongByID.Command { Id = id, SoundFolderPath = SoundFolderPath });
                 return Ok("Song removed succesfully!");
             }
             catch (FileNotFoundException)

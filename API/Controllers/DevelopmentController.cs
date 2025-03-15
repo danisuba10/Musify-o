@@ -52,5 +52,19 @@ namespace API.Controllers
                 return BadRequest(e.Message);
             }
         }
+
+        [HttpDelete("delete-orphan-albums")]
+        public async Task<IActionResult> deleteOrphanAlbums()
+        {
+            try
+            {
+                await Mediator.Send(new DeleteAlbumsWithNoArtists.Command { ImageFolderPath = ImageFolderPath, SoundFolderPath = SoundFolderPath });
+                return Ok("Removed orphan albums");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e);
+            }
+        }
     }
 }
