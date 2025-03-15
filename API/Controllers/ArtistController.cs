@@ -14,6 +14,7 @@ using System.Threading;
 using Application.DataTransferObjects.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Application.ImageAccents;
+using Application.Albums;
 
 namespace API.Controllers
 {
@@ -159,7 +160,6 @@ namespace API.Controllers
 
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ArtistResponse))]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> getArtistById(Guid id)
         {
@@ -174,6 +174,28 @@ namespace API.Controllers
                 new GetImageAccentByPath.Query
                 { Path = Path.Combine(ImageFolderPath, artist.ImageLocation) });
             return Ok(ArtistMapper.MapToResponse(artist, imageAccent, topTenAlbums));
+        }
+
+        [HttpGet("{id}/albums")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(ArtistResponse))]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> getAlbums(Guid id, [FromQuery] SearchRequest request)
+        {
+            try
+            {
+                List<Album> result = await Mediator.Send(new SearchArtistAlbums.Query { Request = request, ArtistId = id });
+                List<SearchResult> artists = AlbumMapper.MapToSearchResultList(result);
+                return Ok(new SearchResponse
+                {
+                    SearchResults = artists,
+                    LastName = result.Last().Name,
+                    LastCreatedAt = result.Last().CreatedAt
+                });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         [Authorize(Policy = "Admin")]
