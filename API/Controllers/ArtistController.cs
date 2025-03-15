@@ -15,6 +15,7 @@ using Application.DataTransferObjects.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Application.ImageAccents;
 using Application.Albums;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace API.Controllers
 {
@@ -184,6 +185,15 @@ namespace API.Controllers
             try
             {
                 List<Album> result = await Mediator.Send(new SearchArtistAlbums.Query { Request = request, ArtistId = id });
+                if (result.Count == 0)
+                {
+                    return Ok(new SearchResponse
+                    {
+                        SearchResults = new List<SearchResult>(),
+                        LastName = null,
+                        LastCreatedAt = null
+                    });
+                }
                 List<SearchResult> artists = AlbumMapper.MapToSearchResultList(result);
                 return Ok(new SearchResponse
                 {
