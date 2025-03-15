@@ -227,13 +227,24 @@ namespace API.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> playSong(Guid id, [FromQuery] Guid userId, [FromQuery] DateTime? time)
+        public async Task<IActionResult> playSong(Guid id)
         {
             try
             {
-                var Song = await Mediator.Send(new GetSongByID.Query { Id = id });
-                await Mediator.Send(new RecordPlay.Query { UserId = userId, PlayedItemType = PlayedItemType.Song, PlayedItemId = id, TimeStamp = time });
-                return Ok();
+                Guid? userId = null;
+                if (Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out Guid parsedUserId))
+                {
+                    userId = parsedUserId;
+                }
+
+                var Song = await Mediator.Send(new GetSongByID.Query { Id = id, IncludeAlbum = true, IncludeArtists = true });
+
+                if (userId != null)
+                {
+                    await Mediator.Send(new RecordPlay.Query { UserId = (Guid)userId, PlayedItemType = PlayedItemType.Song, PlayedItemId = id, TimeStamp = DateTime.Now });
+                }
+
+                return Ok(new { Song = SongMapper.MapToResponse(Song, null, true), songImage = Song.Album.ImageLocation, songFileUrl = Song.SoundLocation });
             }
             catch (NotExistingObjectExceptions sDNE)
             {
