@@ -122,7 +122,7 @@ namespace API.Controllers
         }
 
         [Authorize(Policy = "Admin")]
-        [HttpPost("{id}/remove")]
+        [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

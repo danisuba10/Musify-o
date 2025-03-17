@@ -204,11 +204,11 @@ namespace API.Controllers
         }
 
         [Authorize(Policy = "Admin")]
-        [HttpPost("remove-artist")]
+        [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> removeArtist([FromForm] Guid id)
+        public async Task<IActionResult> removeArtist(Guid id)
         {
             try
             {

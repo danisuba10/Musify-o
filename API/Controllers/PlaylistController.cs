@@ -114,7 +114,7 @@ namespace API.Controllers
         }
 
         [Authorize]
-        [HttpPost("{id}/remove")]
+        [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
