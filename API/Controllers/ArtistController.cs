@@ -31,7 +31,8 @@ namespace API.Controllers
                 {
                     formFile = file,
                     Path = Path.Combine(ImageFolderPath, "artist"),
-                    Name = name
+                    Name = name,
+                    RootImagePath = ImageFolderPath
                 });
             }
             catch (Exception)

@@ -50,7 +50,7 @@ namespace Application.Artists
                 {
                     try
                     {
-                        await _mediator.Send(new UploadImage.Command { Name = command.Id.ToString(), formFile = command.File, Path = Path.Combine(command.ImageFolderPath, "artist") });
+                        await _mediator.Send(new UploadImage.Command { Name = command.Id.ToString(), formFile = command.File, Path = Path.Combine(command.ImageFolderPath, "artist"), RootImagePath = command.ImageFolderPath });
                         existingArtist.ImageLocation = Path.Combine("artist/", command.Id.ToString() + ".jpg");
                     }
                     catch (Exception ex)

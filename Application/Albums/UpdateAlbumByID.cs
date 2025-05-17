@@ -59,7 +59,7 @@ namespace Application.Albums
                 {
                     try
                     {
-                        await _mediator.Send(new UploadImage.Command { Name = query.Id.ToString(), formFile = query.File, Path = Path.Combine(query.ImageFolderPath, "album") });
+                        await _mediator.Send(new UploadImage.Command { Name = query.Id.ToString(), formFile = query.File, Path = Path.Combine(query.ImageFolderPath, "album"), RootImagePath = query.ImageFolderPath });
                         existingAlbum.ImageLocation = Path.Combine("album", existingAlbum.Id + ".jpg");
                     }
                     catch (Exception ex)

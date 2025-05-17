@@ -22,6 +22,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Application.Services;
 using Application.Sounds;
+using API.Policies.Cache;
 
 Env.Load("../../.env");
 
@@ -177,6 +178,21 @@ builder.Services.AddAutoMapper(typeof(SongMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(ArtistMappingProfile).Assembly);
 builder.Services.AddAutoMapper(typeof(UserMappingProfile).Assembly);
 
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 1024 * 1024 * 1000; // 1000 MB total cache size
+});
+
+builder.Services.AddOutputCache(options =>
+{
+    options.SizeLimit = 1024 * 1024 * 900; // 900 MB total cache size
+
+    options.AddPolicy("Images", builder =>
+        builder.Expire(TimeSpan.FromDays(7))
+               .SetVaryByRouteValue("path")
+               .Tag("image")); // <- This sets a retrievable tag
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = "JwtBearer";
@@ -236,6 +252,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection();
+app.UseOutputCache();
 
 app.UseAuthentication();
 app.UseAuthorization();

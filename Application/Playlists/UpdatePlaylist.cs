@@ -68,7 +68,7 @@ namespace Application.Playlists
                     Console.WriteLine("Image not null!");
                     try
                     {
-                        await _mediator.Send(new UploadImage.Command { Name = cmd.Id.ToString(), formFile = cmd.request.Image, Path = Path.Combine(cmd.ImageFolderPath, "playlist") });
+                        await _mediator.Send(new UploadImage.Command { Name = cmd.Id.ToString(), formFile = cmd.request.Image, Path = Path.Combine(cmd.ImageFolderPath, "playlist"), RootImagePath = cmd.ImageFolderPath });
                         playlist.ImageLocation = Path.Combine("playlist", playlist.Id + ".jpg");
                     }
                     catch (Exception ex)

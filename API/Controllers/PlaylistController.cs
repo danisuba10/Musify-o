@@ -28,7 +28,8 @@ namespace API.Controllers
                 {
                     formFile = file,
                     Path = Path.Combine(ImageFolderPath, "playlist"),
-                    Name = name
+                    Name = name,
+                    RootImagePath = ImageFolderPath
                 });
             }
             catch (Exception)
@@ -132,7 +133,7 @@ namespace API.Controllers
                 var userRole = User.Claims.FirstOrDefault(c => c.Type == "Role")?.Value;
 
                 string imageLocation = await Mediator.Send(new RemovePlaylist.Command { Id = id, UserId = userId, Role = userRole });
-                await Mediator.Send(new DeleteImage.Command { Path = Path.Combine(ImageFolderPath, imageLocation) });
+                await Mediator.Send(new DeleteImage.Command { Path = Path.Combine(ImageFolderPath, imageLocation), RootImagePath = ImageFolderPath });
                 return Ok("Playlist successfully removed!");
             }
             catch (NotExistingObjectExceptions ex)

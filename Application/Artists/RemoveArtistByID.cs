@@ -58,7 +58,7 @@ namespace Application.Artists
                 _context.Artists.Remove(artist);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                await _mediator.Send(new DeleteImage.Command { Path = Path.Combine(command.ImageFolderPath, imageLocation) });
+                await _mediator.Send(new DeleteImage.Command { Path = Path.Combine(command.ImageFolderPath, imageLocation), RootImagePath = command.ImageFolderPath });
 
                 return imageLocation;
             }

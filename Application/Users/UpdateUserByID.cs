@@ -63,7 +63,7 @@ namespace Application.Users
                         {
                             throw new ArgumentNullException("Image folder path not set, even though we are trying to upload image.");
                         }
-                        await _mediator.Send(new UploadImage.Command { Name = query.Request.Id.ToString(), formFile = query.Request.File, Path = Path.Combine(query.ImageFolderPath, "user") });
+                        await _mediator.Send(new UploadImage.Command { Name = query.Request.Id.ToString(), formFile = query.Request.File, Path = Path.Combine(query.ImageFolderPath, "user"), RootImagePath = query.ImageFolderPath });
                         user.ImageLocation = Path.Combine("user", user.Id + ".jpg");
                     }
                     catch (ArgumentNullException an)

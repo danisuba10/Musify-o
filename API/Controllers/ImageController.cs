@@ -1,12 +1,20 @@
 using Application.Images;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace API.Controllers
 {
     [Route("image/")]
     public class ImageController : BaseController
     {
+        private readonly IOutputCacheStore _outputCacheStore;
+
+        public ImageController(IOutputCacheStore outputCacheStore)
+        {
+            _outputCacheStore = outputCacheStore;
+        }
+
         [Authorize(Policy = "Admin")]
         [HttpPost("upload-image")]
         public async Task<IActionResult> uploadImage(string fileName, string path, IFormFile file, CancellationToken cancellationToken)
@@ -17,7 +25,8 @@ namespace API.Controllers
                 {
                     formFile = file,
                     Path = Path.Combine(ImageFolderPath, path),
-                    Name = fileName
+                    Name = fileName,
+                    RootImagePath = ImageFolderPath
                 });
 
                 return Ok(resultFilePath);
@@ -28,7 +37,8 @@ namespace API.Controllers
             }
         }
 
-        [HttpGet("{path}")]
+        [HttpGet("{*path}")]
+        [OutputCache(PolicyName = "Images")]
         public async Task<IActionResult> getImage(string path)
         {
             string decodedPath = Uri.UnescapeDataString(path);
@@ -49,6 +59,26 @@ namespace API.Controllers
 
         }
 
+        // [HttpGet("cache-info/{path}")]
+        // public async Task<IActionResult> GetCacheInfo(string path)
+        // {
+        //     string decodedPath = Uri.UnescapeDataString(path);
+        //     if (decodedPath.StartsWith("/"))
+        //     {
+        //         decodedPath = decodedPath.Substring(1);
+        //     }
+
+        //     Console.WriteLine($"Cache info for path: {decodedPath}");
+
+        //     var cached = await _outputCacheStore.GetAsync(decodedPath, CancellationToken.None);
+
+        //     return Ok(new
+        //     {
+        //         IsCached = cached != null,
+        //         CacheKey = decodedPath
+        //     });
+        // }
+
         [Authorize(Policy = "Admin")]
         [HttpPost("remove-image")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -57,7 +87,11 @@ namespace API.Controllers
         {
             try
             {
-                await Mediator.Send(new DeleteImage.Command { Path = Path.Combine(ImageFolderPath, path) });
+                await Mediator.Send(new DeleteImage.Command
+                {
+                    Path = Path.Combine(ImageFolderPath, path),
+                    RootImagePath = ImageFolderPath
+                });
                 return Ok("Image removed successfully!");
             }
             catch (Exception e)

@@ -62,7 +62,7 @@ namespace Application
 
                 try
                 {
-                    await _mediator.Send(new DeleteImage.Command { Path = Path.Combine(request.ImageFolderPath, imageLocation) });
+                    await _mediator.Send(new DeleteImage.Command { Path = Path.Combine(request.ImageFolderPath, imageLocation), RootImagePath = request.ImageFolderPath });
                 }
                 catch (Exception e)
                 {
