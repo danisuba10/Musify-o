@@ -22,7 +22,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Application.Services;
 using Application.Sounds;
-using API.Policies.Cache;
 
 Env.Load("../../.env");
 
