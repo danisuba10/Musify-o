@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using Application.Images;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -54,9 +55,7 @@ namespace API.Controllers
                 return NotFound("Image not found." + "\n" + imagePath);
             }
 
-            var image = await System.IO.File.ReadAllBytesAsync(imagePath);
-            return File(image, "image/jpeg");
-
+            return PhysicalFile(imagePath, "image/jpeg", enableRangeProcessing: true);
         }
 
         // [HttpGet("cache-info/{path}")]

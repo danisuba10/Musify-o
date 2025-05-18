@@ -38,6 +38,13 @@ Console.WriteLine("JWT Secret: " + jwtSettings.Secret);
 Console.WriteLine("JWT Issuer: " + jwtSettings.Issuer);
 Console.WriteLine("JWT Audience: " + jwtSettings.Audience);
 
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxConcurrentConnections = 600;
+    serverOptions.Limits.MaxConcurrentUpgradedConnections = 600;
+    serverOptions.Limits.MaxRequestBodySize = 134217728; // 128MB for large uploads
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocalHost", builder =>
