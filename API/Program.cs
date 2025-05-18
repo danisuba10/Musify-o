@@ -40,6 +40,7 @@ Console.WriteLine("JWT Audience: " + jwtSettings.Audience);
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
+    serverOptions.Limits.MinResponseDataRate = null;
     serverOptions.Limits.MaxConcurrentConnections = 600;
     serverOptions.Limits.MaxConcurrentUpgradedConnections = 600;
     serverOptions.Limits.MaxRequestBodySize = 134217728; // 128MB for large uploads
