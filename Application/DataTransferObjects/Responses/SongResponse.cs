@@ -9,7 +9,7 @@ namespace Application.DataTransferObjects.Responses
 {
     public class SongResponse
     {
-        public Guid? Id { get; set; } = null;
+        public Guid Id { get; set; }
         public String Title { get; set; } = "";
         public int Duration { get; set; } = 0;
         public int PositionInAlbum { get; set; } = -1;
