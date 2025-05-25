@@ -13,18 +13,19 @@ using System.Security.Claims;
 using Microsoft.Extensions.Configuration;
 using Application.Services;
 using Application.Exceptions.User;
+using Application.DataTransferObjects.Responses;
 
 namespace Application.Users
 {
     public class LoginUser
     {
-        public class Command : IRequest<string>
+        public class Command : IRequest<LoginResponse>
         {
             public required string UserName { get; set; }
             public required string Password { get; set; }
         }
 
-        public class Handler : IRequestHandler<Command, string>
+        public class Handler : IRequestHandler<Command, LoginResponse>
         {
             private readonly ApplicationDbContext _context;
             private readonly IMediator _mediator;
@@ -39,7 +40,7 @@ namespace Application.Users
                 _config = config;
                 _jwtTokenService = jwtTokenService;
             }
-            public async Task<string> Handle(Command command, CancellationToken cancellationToken)
+            public async Task<LoginResponse> Handle(Command command, CancellationToken cancellationToken)
             {
                 var ExistingUser = await _mediator.Send(new GetUserByEmail.Query { Email = command.UserName });
 
@@ -55,8 +56,21 @@ namespace Application.Users
                     throw new IncorrectCredentialsException();
                 }
 
-                var token = _jwtTokenService.GenerateJwtToken(ExistingUser);
-                return token;
+                if (ExistingUser.IsTwoFactorEnabled)
+                {
+                    return new LoginResponse
+                    {
+                        Token = _jwtTokenService.GenerateTwoFactorPendingToken(ExistingUser),
+                        RequiresTwoFactor = true
+                    };
+                }
+
+                return new LoginResponse
+                {
+                    Token = _jwtTokenService.GenerateFullAuthToken(ExistingUser),
+                    RequiresTwoFactor = false
+                };
+
             }
         }
     }

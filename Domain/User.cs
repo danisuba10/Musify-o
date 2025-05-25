@@ -20,5 +20,8 @@ namespace Domain
         [Required]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public ICollection<Playlist> Playlists { get; set; } = new List<Playlist>();
+        public bool IsTwoFactorEnabled { get; set; }
+        public string? TwoFactorSecret { get; set; }
+        public string? TwoFactorRecoveryCodes { get; set; }
     }
 }

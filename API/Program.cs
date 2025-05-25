@@ -22,6 +22,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Application.Services;
 using Application.Sounds;
+using API.Middleware;
 
 Env.Load("../../.env");
 
@@ -148,6 +149,7 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>((IServiceProvider sp,
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<TwoFactorAuthService>();
 
 builder.Services.AddMediatR(typeof(AddAlbum.Handler).Assembly);
 builder.Services.AddMediatR(typeof(AddSongsToAlbum.Handler).Assembly);
@@ -262,6 +264,7 @@ if (app.Environment.IsDevelopment())
 app.UseOutputCache();
 
 app.UseAuthentication();
+app.UseMiddleware<TwoFactorAuthMiddleware>(); // <-- Add this line
 app.UseAuthorization();
 
 app.MapControllers();

@@ -19,6 +19,7 @@ using Application.Users;
 using Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QRCoder;
 
 namespace API.Controllers
 {
@@ -88,8 +89,8 @@ namespace API.Controllers
 
             try
             {
-                string token = await Mediator.Send(new LoginUser.Command { UserName = userName, Password = password });
-                return Ok(token);
+                LoginResponse response = await Mediator.Send(new LoginUser.Command { UserName = userName, Password = password });
+                return Ok(response);
             }
             catch (UserDoesNotExistException udne)
             {
@@ -346,6 +347,131 @@ namespace API.Controllers
                 return BadRequest(e);
             }
 
+        }
+
+        [Authorize]
+        [HttpPost("2fa/enable")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> EnableTwoFactorAuth()
+        {
+            try
+            {
+                if (!Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out var userId))
+                {
+                    return Unauthorized("User identification failed!");
+                }
+
+                var response = await Mediator.Send(new EnableTwoFactorAuth.Command { UserId = userId });
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpPost("2fa/verify")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> VerifyTwoFactorAuth([FromForm] string Code)
+        {
+            try
+            {
+                if (!Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out var userId))
+                {
+                    return Unauthorized("User identification failed!");
+                }
+
+                var isValid = await Mediator.Send(new VerifyTwoFactorAuth.Command
+                {
+                    UserId = userId,
+                    Code = Code
+                });
+
+                return Ok(new { IsValid = isValid });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpPost("2fa/recovery")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> VerifyTwoFactorRecoveryCode([FromForm] string RecoveryCode)
+        {
+            try
+            {
+                if (!Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out var userId))
+                {
+                    return Unauthorized("User identification failed!");
+                }
+
+                var isValid = await Mediator.Send(new VerifyTwoFactorRecoveryCode.Command
+                {
+                    UserId = userId,
+                    RecoveryCode = RecoveryCode
+                });
+
+                return Ok(new { IsValid = isValid });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpPost("2fa/disable")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> DisableTwoFactorAuth()
+        {
+            try
+            {
+                if (!Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out var userId))
+                {
+                    return Unauthorized("User identification failed!");
+                }
+
+                var result = await Mediator.Send(new DisableTwoFactorAuth.Command { UserId = userId });
+                return Ok(new { Success = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Authorize]
+        [HttpGet("2fa/qrcode")]
+        public async Task<IActionResult> GetTwoFactorQrCode()
+        {
+            var userId = Guid.Parse(User.FindFirst("Identifier").Value);
+            var user = await Mediator.Send(new GetUserById.Query { Id = userId });
+
+            if (user == null || string.IsNullOrEmpty(user.TwoFactorSecret))
+            {
+                return BadRequest("Two-factor authentication is not enabled for this user.");
+            }
+
+            var qrCodeUri = $"otpauth://totp/YourApp:{user.Email}?secret={user.TwoFactorSecret}&issuer=YourApp";
+
+            // Generate QR code image
+            var qrGenerator = new QRCodeGenerator();
+            var qrCodeData = qrGenerator.CreateQrCode(qrCodeUri, QRCodeGenerator.ECCLevel.Q);
+            var qrCode = new PngByteQRCode(qrCodeData);
+            var qrCodeBytes = qrCode.GetGraphic(20);
+
+            return File(qrCodeBytes, "image/png");
         }
     }
 }
