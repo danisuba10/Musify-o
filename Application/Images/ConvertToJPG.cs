@@ -62,7 +62,7 @@ namespace Application.Images
 
                 using (var inputStream = file.OpenReadStream())
                 {
-                    using (var image = await Image.LoadAsync(inputStream))
+                    using (var image = await SixLabors.ImageSharp.Image.LoadAsync(inputStream))
                     {
 
                         var memoryStream = new MemoryStream();
