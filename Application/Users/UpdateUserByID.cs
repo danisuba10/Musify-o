@@ -36,6 +36,11 @@ namespace Application.Users
                     throw new Exception("User with this ID does not exist!");
                 }
 
+                if (query.Request.IsTwoFactorEnabled.HasValue)
+                {
+                    user.IsTwoFactorEnabled = query.Request.IsTwoFactorEnabled.Value;
+                }
+
                 if (!String.IsNullOrWhiteSpace(query.Request.DisplayName))
                 {
                     user.DisplayName = query.Request.DisplayName;

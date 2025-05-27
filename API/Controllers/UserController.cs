@@ -373,6 +373,47 @@ namespace API.Controllers
         }
 
         [Authorize]
+        [HttpPost("2fa/confirm")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ConfirmTwoFactorAuth([FromForm] string code)
+        {
+            Guid? userId = null;
+            if (Guid.TryParse(User.Claims.FirstOrDefault(c => c.Type == "Identifier")?.Value, out Guid parsedUserId))
+            {
+                userId = parsedUserId;
+            }
+
+            var user = await Mediator.Send(new GetUserById.Query { Id = userId.Value });
+
+            if (user == null || string.IsNullOrEmpty(user.TwoFactorSecret))
+                return BadRequest("2FA not initialized");
+
+            // Verify the code
+            bool isValid = (await Mediator.Send(new VerifyTwoFactorAuth.Command
+            {
+                UserId = userId.Value,
+                Code = code
+            })).Success;
+
+            if (!isValid) return BadRequest("Invalid verification code");
+
+            // Only enable after successful verification
+            user.IsTwoFactorEnabled = true;
+            await Mediator.Send(new UpdateUserByID.Query
+            {
+                Request = new UpdateUserRequest { Id = userId.Value, IsTwoFactorEnabled = true },
+                ImageFolderPath = ImageFolderPath
+            });
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "2FA successfully enabled"
+            });
+        }
+
+        [Authorize]
         [HttpPost("2fa/verify")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

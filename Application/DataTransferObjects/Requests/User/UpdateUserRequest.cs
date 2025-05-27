@@ -14,5 +14,6 @@ namespace Application.DataTransferObjects.Requests
         public string? Role { get; set; }
         public string? DisplayName { get; set; }
         public IFormFile? File { get; set; }
+        public bool? IsTwoFactorEnabled { get; set; }
     }
 }

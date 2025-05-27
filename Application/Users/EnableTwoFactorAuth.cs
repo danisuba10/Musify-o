@@ -41,7 +41,7 @@ namespace Application.Users
                 var recoveryCodes = await _twoFactorAuthService.GenerateRecoveryCodesAsync();
                 var qrCodeUri = await _twoFactorAuthService.GenerateQrCodeUri(user.Email, secret, "Meloptica");
 
-                user.IsTwoFactorEnabled = true;
+                user.IsTwoFactorEnabled = false;
                 user.TwoFactorSecret = secret;
                 user.TwoFactorRecoveryCodes = JsonSerializer.Serialize(recoveryCodes);
 
