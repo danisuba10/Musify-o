@@ -15,6 +15,7 @@ using Application.Exceptions.User;
 using Application.ImageAccents;
 using Application.Mappers;
 using Application.Playlists;
+using Application.Services;
 using Application.Users;
 using Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -26,6 +27,13 @@ namespace API.Controllers
     [Route("user")]
     public class UserController : BaseController
     {
+
+        private readonly JwtTokenService _jwtTokenService;
+
+        public UserController(JwtTokenService jwtTokenService)
+        {
+            _jwtTokenService = jwtTokenService;
+        }
 
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -394,7 +402,7 @@ namespace API.Controllers
             {
                 UserId = userId.Value,
                 Code = code
-            })).Success;
+            })).IsValid;
 
             if (!isValid) return BadRequest("Invalid verification code");
 
@@ -406,10 +414,13 @@ namespace API.Controllers
                 ImageFolderPath = ImageFolderPath
             });
 
+            var recoveryCodes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(user.TwoFactorRecoveryCodes);
             return Ok(new
             {
                 Success = true,
-                Message = "2FA successfully enabled"
+                Message = "2FA successfully enabled",
+                RecoveryCodes = recoveryCodes,
+                Token = _jwtTokenService.GenerateFullAuthToken(user)
             });
         }
 
@@ -427,13 +438,18 @@ namespace API.Controllers
                     return Unauthorized("User identification failed!");
                 }
 
-                var isValid = await Mediator.Send(new VerifyTwoFactorAuth.Command
+                var response = await Mediator.Send(new VerifyTwoFactorAuth.Command
                 {
                     UserId = userId,
                     Code = Code
                 });
 
-                return Ok(new { IsValid = isValid });
+                if (response.IsValid == false)
+                {
+                    return BadRequest("Invalid 2FA Code!");
+                }
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -455,13 +471,27 @@ namespace API.Controllers
                     return Unauthorized("User identification failed!");
                 }
 
+                var user = await Mediator.Send(new GetUserById.Query { Id = userId });
+
+                if (user == null || !user.IsTwoFactorEnabled)
+                {
+                    return BadRequest("Two-factor authentication is not enabled for this user.");
+                }
+
                 var isValid = await Mediator.Send(new VerifyTwoFactorRecoveryCode.Command
                 {
                     UserId = userId,
                     RecoveryCode = RecoveryCode
                 });
 
-                return Ok(new { IsValid = isValid });
+                if (isValid)
+                {
+                    return Ok(new { IsValid = isValid, Token = _jwtTokenService.GenerateFullAuthToken(user) });
+                }
+                else
+                {
+                    return BadRequest("Invalid recovery code.");
+                }
             }
             catch (Exception ex)
             {
@@ -482,9 +512,13 @@ namespace API.Controllers
                 {
                     return Unauthorized("User identification failed!");
                 }
-
+                var user = await Mediator.Send(new GetUserById.Query { Id = userId });
+                if (user == null || !user.IsTwoFactorEnabled)
+                {
+                    return BadRequest("Two-factor authentication is not enabled for this user.");
+                }
                 var result = await Mediator.Send(new DisableTwoFactorAuth.Command { UserId = userId });
-                return Ok(new { Success = result });
+                return Ok(new { Success = result, Token = _jwtTokenService.GenerateFullAuthToken(user) });
             }
             catch (Exception ex)
             {
@@ -504,7 +538,7 @@ namespace API.Controllers
                 return BadRequest("Two-factor authentication is not enabled for this user.");
             }
 
-            var qrCodeUri = $"otpauth://totp/YourApp:{user.Email}?secret={user.TwoFactorSecret}&issuer=YourApp";
+            var qrCodeUri = $"otpauth://totp/Meloptica:{user.Email}?secret={user.TwoFactorSecret}&issuer=Meloptica";
 
             // Generate QR code image
             var qrGenerator = new QRCodeGenerator();

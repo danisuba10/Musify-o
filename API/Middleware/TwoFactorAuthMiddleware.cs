@@ -29,7 +29,7 @@ namespace API.Middleware
             var twoFactorEnabled = context.User?.Claims?
                 .FirstOrDefault(c => c.Type == "TwoFactorEnabled")?.Value;
 
-            if (twoFactorEnabled.Equals("true") && !twoFactorPending.Equals("false"))
+            if (twoFactorEnabled?.Equals("true") == true && twoFactorPending?.Equals("false") != true)
             {
                 context.Response.StatusCode = 403; // Forbidden
                 await context.Response.WriteAsync("Two-factor authentication required");

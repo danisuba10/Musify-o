@@ -7,7 +7,7 @@ namespace Application.DataTransferObjects.Responses
 {
     public class VerifyTwoFactorAuthResponse
     {
-        public bool Success { get; set; }
+        public bool IsValid { get; set; }
         public string? Token { get; set; }
     }
 }

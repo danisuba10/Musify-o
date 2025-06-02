@@ -35,18 +35,18 @@ namespace Application.Users
                 var user = await _context.Users.FindAsync(request.UserId);
                 if (user == null || string.IsNullOrEmpty(user.TwoFactorSecret))
                 {
-                    return new VerifyTwoFactorAuthResponse { Success = false };
+                    return new VerifyTwoFactorAuthResponse { IsValid = false };
                 }
 
                 var isValid = await _twoFactorAuthService.VerifyTwoFactorCodeAsync(user.TwoFactorSecret, request.Code);
                 if (!isValid)
                 {
-                    return new VerifyTwoFactorAuthResponse { Success = false };
+                    return new VerifyTwoFactorAuthResponse { IsValid = false, Token = null };
                 }
 
                 return new VerifyTwoFactorAuthResponse
                 {
-                    Success = true,
+                    IsValid = true,
                     Token = _jwtTokenService.GenerateFullAuthToken(user)
                 };
             }
