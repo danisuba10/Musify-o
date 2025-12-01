@@ -154,9 +154,11 @@ namespace API.Controllers
 
             if (request.FormFile != null && imageUploadResult is BadRequestObjectResult)
             {
+                await LogOnly("Artist", "CreateFailed", id, "Artist created but failed to upload image: " + errorMessage);
                 return BadRequest("Artist created, but failed to upload image.\n" + errorMessage);
             }
 
+            await NotifyAndLog("Artist", "Create", id, $"Name: {request.Name}");
             return Ok(new { Id = id, Message = "Artist added successfully!" });
         }
 
@@ -168,6 +170,7 @@ namespace API.Controllers
             Artist? artist = await Mediator.Send(new GetArtist.Query { Id = id });
             if (artist == null)
             {
+                await LogOnly("Artist", "ReadFailed", id, "NotFound");
                 return NotFound("Artist with this ID not found!");
             }
             List<Album> topTenAlbums = await Mediator.Send(new GetTopAlbumsOfArtist.Query { Id = artist.Id });
@@ -175,6 +178,7 @@ namespace API.Controllers
             ImageAccent? imageAccent = await Mediator.Send(
                 new GetImageAccentByPath.Query
                 { Path = Path.Combine(ImageFolderPath, artist.ImageLocation) });
+            await NotifyAndLog("Artist", "Read", id);
             return Ok(ArtistMapper.MapToResponse(artist, imageAccent, topTenAlbums));
         }
 
@@ -191,6 +195,7 @@ namespace API.Controllers
                     return NotFound("No results!");
                 }
                 List<SearchResult> artists = AlbumMapper.MapToSearchResultList(result);
+                await NotifyAndLog("Artist", "Read", id, "AlbumsQuery");
                 return Ok(new SearchResponse
                 {
                     SearchResults = artists,
@@ -200,6 +205,7 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
+                await LogOnly("Artist", "AlbumsReadFailed", id, e.Message);
                 return BadRequest(e.Message);
             }
         }
@@ -214,10 +220,12 @@ namespace API.Controllers
             try
             {
                 string imageLocation = await Mediator.Send(new RemoveArtistByID.Command { Id = id, ImageFolderPath = ImageFolderPath, SoundFolderPath = SoundFolderPath });
+                await NotifyAndLog("Artist", "Delete", id);
                 return Ok("Artist successfully removed!");
             }
             catch (Exception e)
             {
+                await LogOnly("Artist", "DeleteFailed", id, e.Message);
                 return NotFound(e.Message);
             }
         }
@@ -234,10 +242,12 @@ namespace API.Controllers
             {
                 await Mediator.Send(new UpdateArtistByID.Command
                 { Id = request.Id, File = request.FormFile, Name = request.Name, ImageFolderPath = ImageFolderPath });
+                await NotifyAndLog("Artist", "Update", request.Id, $"Name: {request.Name}");
                 return Ok("Artist succesfully modified!");
             }
             catch (Exception e)
             {
+                await LogOnly("Artist", "UpdateFailed", request.Id, e.Message);
                 return BadRequest(e.Message);
             }
         }
@@ -258,6 +268,7 @@ namespace API.Controllers
                     return NotFound("No results were found");
                 }
 
+                await NotifyAndLog("Artist", "Read", null, $"SearchRequest: Term={request.SearchTerm}");
                 return Ok(new SearchResponse
                 {
                     SearchResults = artists,
@@ -267,6 +278,7 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
+                await LogOnly("Artist", "ReadFailed", null, e.Message);
                 return BadRequest(e.Message);
             }
         }

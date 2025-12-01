@@ -23,6 +23,8 @@ using System.Text;
 using Application.Services;
 using Application.Sounds;
 using API.Middleware;
+using API.Hubs;
+using API.Logging;
 
 Env.Load("../../.env");
 
@@ -53,6 +55,7 @@ builder.Services.AddCors(options =>
         builder.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.0.184:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
+            .AllowCredentials()
     );
     options.AddPolicy("Prod", builder =>
         builder.WithOrigins("http://meloptica.stream", "https://meloptica.stream")
@@ -202,6 +205,12 @@ builder.Services.AddOutputCache(options =>
                .Tag("image")); // <- This sets a retrievable tag
 });
 
+// SignalR
+builder.Services.AddSignalR();
+
+// File Logger for CRUD operations
+builder.Services.AddSingleton<IFileLogger, FileLogger>();
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = "JwtBearer";
@@ -268,4 +277,6 @@ app.UseMiddleware<TwoFactorAuthMiddleware>(); // <-- Add this line
 app.UseAuthorization();
 
 app.MapControllers();
+// SignalR hub endpoint for real-time notifications
+app.MapHub<NotificationHub>("/hubs/notifications");
 app.Run();

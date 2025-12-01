@@ -113,10 +113,12 @@ namespace API.Controllers
                     return BadRequest(new { Id = id, Message = errorMessage });
                 }
 
+                await NotifyAndLog("Song", "Create", id, $"Title: {request.Title}");
                 return Ok(new { Id = id, Message = "Song added successfully!" });
             }
             catch (Exception e)
             {
+                await LogOnly("Song", "CreateFailed", null, e.Message);
                 return BadRequest(e.Message);
             }
         }
@@ -131,14 +133,17 @@ namespace API.Controllers
             try
             {
                 string soundLocation = await Mediator.Send(new RemoveSongByID.Command { Id = id, SoundFolderPath = SoundFolderPath });
+                await NotifyAndLog("Song", "Delete", id);
                 return Ok("Song removed succesfully!");
             }
             catch (FileNotFoundException)
             {
+                await LogOnly("Song", "DeleteFailed", id, "Sound file not found while deleting");
                 return BadRequest("Song successfully removed, but sound file failed to be deleted.");
             }
             catch (Exception e)
             {
+                await LogOnly("Song", "DeleteFailed", id, e.Message);
                 return NotFound(e.Message);
             }
         }
@@ -157,10 +162,15 @@ namespace API.Controllers
                 {
                     return BadRequest(failures.ToString() + " songs failed to be removed!");
                 }
+                foreach (var id in songIds)
+                {
+                    await NotifyAndLog("Song", "Delete", id);
+                }
                 return Ok("Song removed succesfully!");
             }
             catch (Exception e)
             {
+                await LogOnly("Song", "DeleteFailed", null, e.Message);
                 return BadRequest(e.Message);
             }
         }
@@ -184,10 +194,12 @@ namespace API.Controllers
                         AlbumID = request.AlbumId,
                         ArtistIds = request.ArtistIds
                     });
+                await NotifyAndLog("Song", "Update", request.Id, $"Title: {request.Title}");
                 return Ok("Song updated successfully!");
             }
             catch (Exception e)
             {
+                await LogOnly("Song", "UpdateFailed", request.Id, e.Message);
                 return BadRequest($"{e.Message} - {e.InnerException?.Message}");
             }
 
@@ -209,6 +221,7 @@ namespace API.Controllers
                     return NotFound("No results were found");
                 }
 
+                await NotifyAndLog("Song", "Read", null, $"SearchRequest: Term={request.SearchTerm}");
                 return Ok(new SearchResponse
                 {
                     SearchResults = results,
@@ -218,6 +231,7 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
+                await LogOnly("Song", "ReadFailed", null, e.Message);
                 return BadRequest(e.Message);
             }
         }
@@ -243,18 +257,22 @@ namespace API.Controllers
                     await Mediator.Send(new RecordPlay.Query { UserId = (Guid)userId, PlayedItemType = PlayedItemType.Song, PlayedItemId = id, TimeStamp = DateTime.Now });
                 }
 
+                await NotifyAndLog("Song", "Read", id, "Play");
                 return Ok(new { Song = SongMapper.MapToResponse(Song, null, true), songImage = Song.Album.ImageLocation, songFileUrl = Song.SoundLocation });
             }
             catch (NotExistingObjectExceptions sDNE)
             {
+                await LogOnly("Song", "ReadFailed", id, sDNE.Message);
                 return NotFound(sDNE.Message);
             }
             catch (ArgumentException ae)
             {
+                await LogOnly("Song", "ReadFailed", id, ae.Message);
                 return BadRequest("Internal error:" + ae.Message);
             }
             catch (Exception e)
             {
+                await LogOnly("Song", "ReadFailed", id, e.Message);
                 return BadRequest(e.Message);
             }
         }

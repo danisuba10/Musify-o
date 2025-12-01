@@ -27,3 +27,4 @@ api/Images
 .env
 .env copy
 API/sounds/*
+README_modifications.md

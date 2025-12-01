@@ -287,6 +287,7 @@ namespace API.Controllers
                 return BadRequest(new { Id = id, Message = errorMessage });
             }
 
+            await NotifyAndLog("Album", "Create", id, $"Name: {request.Name}");
             return Ok(new { Id = id, Message = "Album added successfully!" });
         }
 
@@ -301,10 +302,12 @@ namespace API.Controllers
                 Album album = await Mediator.Send(new GetAlbumByID.Query { Id = id, IncludeArtists = true, IncludeSongs = true });
                 ImageAccent? imageAccent = await Mediator.Send(new GetImageAccentByPath.Query
                 { Path = Path.Combine(ImageFolderPath, album.ImageLocation) });
+                await NotifyAndLog("Album", "Read", id);
                 return Ok(AlbumMapper.MapToResponse(album, imageAccent));
             }
             catch (KeyNotFoundException ex)
             {
+                await LogOnly("Album", "ReadFailed", id, ex.Message);
                 return NotFound(ex.Message);
             }
         }
@@ -321,9 +324,11 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
+                await LogOnly("Album", "DeleteFailed", id, e.Message);
                 return BadRequest(e.Message);
             }
 
+            await NotifyAndLog("Album", "Delete", id);
             return Ok("Album removed successfully!");
         }
 
@@ -337,10 +342,12 @@ namespace API.Controllers
             try
             {
                 await Mediator.Send(new UpdateAlbumByID.Query { Id = request.Id, Name = request.Name, Year = request.Year, File = request.FormFile, ArtistIds = request.ArtistIds, ImageFolderPath = ImageFolderPath });
+                await NotifyAndLog("Album", "Update", request.Id, $"Name: {request.Name}");
                 return Ok();
             }
             catch (Exception e)
             {
+                await LogOnly("Album", "UpdateFailed", request.Id, e.Message);
                 return BadRequest(e.Message);
             }
         }
@@ -361,6 +368,7 @@ namespace API.Controllers
                     return NotFound("No results were found");
                 }
 
+                await NotifyAndLog("Album", "Read", null, $"SearchRequest: Term={request.SearchTerm}");
                 return Ok(new SearchResponse
                 {
                     SearchResults = results,
@@ -370,6 +378,7 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
+                await LogOnly("Album", "ReadFailed", null, e.Message);
                 return BadRequest(e.Message);
             }
         }
