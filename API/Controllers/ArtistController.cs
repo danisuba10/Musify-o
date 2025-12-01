@@ -170,7 +170,7 @@ namespace API.Controllers
             Artist? artist = await Mediator.Send(new GetArtist.Query { Id = id });
             if (artist == null)
             {
-                await LogOnly("Artist", "ReadFailed", id, "NotFound");
+                // Read failed - not logging per configuration
                 return NotFound("Artist with this ID not found!");
             }
             List<Album> topTenAlbums = await Mediator.Send(new GetTopAlbumsOfArtist.Query { Id = artist.Id });
@@ -178,7 +178,7 @@ namespace API.Controllers
             ImageAccent? imageAccent = await Mediator.Send(
                 new GetImageAccentByPath.Query
                 { Path = Path.Combine(ImageFolderPath, artist.ImageLocation) });
-            await NotifyAndLog("Artist", "Read", id);
+            // No notifications or logs for read operations per request
             return Ok(ArtistMapper.MapToResponse(artist, imageAccent, topTenAlbums));
         }
 
@@ -195,7 +195,7 @@ namespace API.Controllers
                     return NotFound("No results!");
                 }
                 List<SearchResult> artists = AlbumMapper.MapToSearchResultList(result);
-                await NotifyAndLog("Artist", "Read", id, "AlbumsQuery");
+                // No notifications or logs for read operations per request
                 return Ok(new SearchResponse
                 {
                     SearchResults = artists,
@@ -205,7 +205,7 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
-                await LogOnly("Artist", "AlbumsReadFailed", id, e.Message);
+                // Read failed - not logging per configuration
                 return BadRequest(e.Message);
             }
         }
@@ -268,7 +268,7 @@ namespace API.Controllers
                     return NotFound("No results were found");
                 }
 
-                await NotifyAndLog("Artist", "Read", null, $"SearchRequest: Term={request.SearchTerm}");
+                // No notifications or logs for read operations per request
                 return Ok(new SearchResponse
                 {
                     SearchResults = artists,
@@ -278,7 +278,7 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
-                await LogOnly("Artist", "ReadFailed", null, e.Message);
+                // Read failed - not logging per configuration
                 return BadRequest(e.Message);
             }
         }

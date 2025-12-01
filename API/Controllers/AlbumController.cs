@@ -302,12 +302,11 @@ namespace API.Controllers
                 Album album = await Mediator.Send(new GetAlbumByID.Query { Id = id, IncludeArtists = true, IncludeSongs = true });
                 ImageAccent? imageAccent = await Mediator.Send(new GetImageAccentByPath.Query
                 { Path = Path.Combine(ImageFolderPath, album.ImageLocation) });
-                await NotifyAndLog("Album", "Read", id);
                 return Ok(AlbumMapper.MapToResponse(album, imageAccent));
             }
             catch (KeyNotFoundException ex)
             {
-                await LogOnly("Album", "ReadFailed", id, ex.Message);
+                // Read failed - not logging per configuration
                 return NotFound(ex.Message);
             }
         }
@@ -368,7 +367,7 @@ namespace API.Controllers
                     return NotFound("No results were found");
                 }
 
-                await NotifyAndLog("Album", "Read", null, $"SearchRequest: Term={request.SearchTerm}");
+                // No notifications or logs for read operations per request
                 return Ok(new SearchResponse
                 {
                     SearchResults = results,
@@ -378,7 +377,7 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
-                await LogOnly("Album", "ReadFailed", null, e.Message);
+                // Read failed - not logging per configuration
                 return BadRequest(e.Message);
             }
         }

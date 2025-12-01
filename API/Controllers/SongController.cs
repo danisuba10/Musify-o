@@ -221,7 +221,7 @@ namespace API.Controllers
                     return NotFound("No results were found");
                 }
 
-                await NotifyAndLog("Song", "Read", null, $"SearchRequest: Term={request.SearchTerm}");
+                // No notifications or logs for read operations per request
                 return Ok(new SearchResponse
                 {
                     SearchResults = results,
@@ -231,7 +231,7 @@ namespace API.Controllers
             }
             catch (Exception e)
             {
-                await LogOnly("Song", "ReadFailed", null, e.Message);
+                // Read failed - not logging per configuration
                 return BadRequest(e.Message);
             }
         }
@@ -257,22 +257,22 @@ namespace API.Controllers
                     await Mediator.Send(new RecordPlay.Query { UserId = (Guid)userId, PlayedItemType = PlayedItemType.Song, PlayedItemId = id, TimeStamp = DateTime.Now });
                 }
 
-                await NotifyAndLog("Song", "Read", id, "Play");
+                // No notifications or logs for read (play) operations per request
                 return Ok(new { Song = SongMapper.MapToResponse(Song, null, true), songImage = Song.Album.ImageLocation, songFileUrl = Song.SoundLocation });
             }
             catch (NotExistingObjectExceptions sDNE)
             {
-                await LogOnly("Song", "ReadFailed", id, sDNE.Message);
+                // Read failed - not logging per configuration
                 return NotFound(sDNE.Message);
             }
             catch (ArgumentException ae)
             {
-                await LogOnly("Song", "ReadFailed", id, ae.Message);
+                // Read failed - not logging per configuration
                 return BadRequest("Internal error:" + ae.Message);
             }
             catch (Exception e)
             {
-                await LogOnly("Song", "ReadFailed", id, e.Message);
+                // Read failed - not logging per configuration
                 return BadRequest(e.Message);
             }
         }

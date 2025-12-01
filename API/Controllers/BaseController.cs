@@ -39,11 +39,36 @@ namespace API.Controllers
                 {
                     await FileLogger.LogAsync(message);
                 }
-
                 if (HubContext != null)
                 {
-                    // Notify all listeners about the entity modification
-                    await HubContext.Clients.All.SendAsync("EntityModified", new { EntityType = entityType, Operation = operation, Id = idString });
+                    try
+                    {
+                        // Notify all listeners about the entity modification
+                        await HubContext.Clients.All.SendAsync("EntityModified", new { EntityType = entityType, Operation = operation, Id = idString });
+
+                        // Log that signaling was successful
+                        if (FileLogger != null)
+                        {
+                            var successMsg = $"SignalingSuccess: User: {user} Operation: {operation} Entity: {entityType} Id: {idString}";
+                            await FileLogger.LogAsync(successMsg);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // If signaling fails, log the failure so the operator can inspect
+                        if (FileLogger != null)
+                        {
+                            var failMsg = $"SignalingFailed: User: {user} Operation: {operation} Entity: {entityType} Id: {idString} Error: {ex.Message}";
+                            try
+                            {
+                                await FileLogger.LogAsync(failMsg);
+                            }
+                            catch
+                            {
+                                // ignore logging failures to avoid secondary exceptions
+                            }
+                        }
+                    }
                 }
             }
             catch
