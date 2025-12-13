@@ -46,10 +46,11 @@ namespace API.Controllers
                         // Notify all listeners about the entity modification
                         await HubContext.Clients.All.SendAsync("EntityModified", new { EntityType = entityType, Operation = operation, Id = idString });
 
-                        // Log that signaling was successful
+                        // Log that signaling was successful and how many local connections exist
                         if (FileLogger != null)
                         {
-                            var successMsg = $"SignalingSuccess: User: {user} Operation: {operation} Entity: {entityType} Id: {idString}";
+                            var local = API.Hubs.NotificationHub.ConnectionCount;
+                            var successMsg = $"SignalingSuccess: User: {user} Operation: {operation} Entity: {entityType} Id: {idString} LocalConnections: {local}";
                             await FileLogger.LogAsync(successMsg);
                         }
                     }
