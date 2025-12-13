@@ -236,6 +236,25 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/hubs"))
+    {
+        try
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Incoming {context.Request.Method} {context.Request.Path}{context.Request.QueryString}");
+            foreach (var h in context.Request.Headers)
+            {
+                sb.AppendLine($"{h.Key}: {h.Value}");
+            }
+            Console.WriteLine(sb.ToString().TrimEnd());
+        }
+        catch { }
+    }
+    await next();
+});
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
