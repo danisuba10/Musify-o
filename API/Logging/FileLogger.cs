@@ -11,6 +11,7 @@ namespace API.Logging
     {
         private readonly string _filePath;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+        private readonly bool _consoleLoggingEnabled = true;
 
         public FileLogger(IConfiguration configuration)
         {
@@ -18,7 +19,25 @@ namespace API.Logging
             {
                 var logsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
                 if (!Directory.Exists(logsFolder)) Directory.CreateDirectory(logsFolder);
-                _filePath = Path.Combine(logsFolder, configuration["Logging:CrudLogFileName"] ?? "crud-operations.txt");
+                // Prefer environment variables (loaded via .env) but fall back to IConfiguration
+                var filenameEnv = Environment.GetEnvironmentVariable("Logging__CrudLogFileName");
+                var fileName = !string.IsNullOrEmpty(filenameEnv) ? filenameEnv : (configuration["Logging:CrudLogFileName"] ?? "crud-operations.txt");
+                _filePath = Path.Combine(logsFolder, fileName);
+
+                // Allow toggling console logging via environment variable (prefer .env) or configuration
+                var consoleEnv = Environment.GetEnvironmentVariable("Logging__ConsoleLoggingEnabled");
+                if (!string.IsNullOrEmpty(consoleEnv) && bool.TryParse(consoleEnv, out var envEnabled))
+                {
+                    _consoleLoggingEnabled = envEnabled;
+                }
+                else
+                {
+                    var consoleConfig = configuration["Logging:ConsoleLoggingEnabled"];
+                    if (!string.IsNullOrEmpty(consoleConfig) && bool.TryParse(consoleConfig, out var enabledConfig))
+                    {
+                        _consoleLoggingEnabled = enabledConfig;
+                    }
+                }
             }
             catch
             {
@@ -34,6 +53,17 @@ namespace API.Logging
             try
             {
                 await File.AppendAllTextAsync(_filePath, line, Encoding.UTF8);
+                if (_consoleLoggingEnabled)
+                {
+                    try
+                    {
+                        Console.WriteLine(line.TrimEnd());
+                    }
+                    catch
+                    {
+                        // Ignore console logging failure
+                    }
+                }
             }
             finally
             {
