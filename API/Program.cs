@@ -58,7 +58,7 @@ builder.Services.AddCors(options =>
             .AllowCredentials()
     );
     options.AddPolicy("Prod", builder =>
-        builder.WithOrigins("http://meloptica.stream", "https://meloptica.stream")
+        builder.WithOrigins("http://meloptica.xyz", "https://meloptica.xyz")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials()
