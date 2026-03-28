@@ -28,3 +28,4 @@ api/Images
 .env copy
 API/sounds/*
 README_modifications.md
+SignalRTest/*
