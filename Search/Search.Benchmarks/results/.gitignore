@@ -1,0 +1,4 @@
+# Benchmark output — not committed to source control
+results.csv
+nbomber-reports/
+BenchmarkDotNet.Artifacts/

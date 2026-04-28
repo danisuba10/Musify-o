@@ -1,0 +1,12 @@
+<Solution>
+  <Project Path="../../Domain/Domain.csproj" />
+  <Project Path="../../Persistence/Persistence.csproj" />
+  <Project Path="../Search.Abstractions/Search.Abstractions.csproj" />
+  <Project Path="../Search.Variant1.Pagination/Search.Variant1.Pagination.csproj" />
+  <Project Path="../Search.Variant2_1.LevenshteinBasic/Search.Variant2_1.LevenshteinBasic.csproj" />
+  <Project Path="../Search.Variant2_2.LevenshteinStack/Search.Variant2_2.LevenshteinStack.csproj" />
+  <Project Path="../Search.Variant3_1.DamerauBasic/Search.Variant3_1.DamerauBasic.csproj" />
+  <Project Path="../Search.Variant3_2.DamerauStack/Search.Variant3_2.DamerauStack.csproj" />
+  <Project Path="../Search.Variant3_3.DamerauBitmap/Search.Variant3_3.DamerauBitmap.csproj" />
+  <Project Path="Search.Benchmarks.csproj" />
+</Solution>
