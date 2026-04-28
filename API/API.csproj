@@ -26,6 +26,12 @@
     <ProjectReference Include="..\Persistence\Persistence.csproj" />
     <ProjectReference Include="..\Application\Application.csproj" />
     <ProjectReference Include="..\Domain\Domain.csproj" />
+    <ProjectReference Include="..\Search\Search.Variant1.Pagination\Search.Variant1.Pagination.csproj" />
+    <ProjectReference Include="..\Search\Search.Variant2_1.LevenshteinBasic\Search.Variant2_1.LevenshteinBasic.csproj" />
+    <ProjectReference Include="..\Search\Search.Variant2_2.LevenshteinStack\Search.Variant2_2.LevenshteinStack.csproj" />
+    <ProjectReference Include="..\Search\Search.Variant3_1.DamerauBasic\Search.Variant3_1.DamerauBasic.csproj" />
+    <ProjectReference Include="..\Search\Search.Variant3_2.DamerauStack\Search.Variant3_2.DamerauStack.csproj" />
+    <ProjectReference Include="..\Search\Search.Variant3_3.DamerauBitmap\Search.Variant3_3.DamerauBitmap.csproj" />
   </ItemGroup>
 
 </Project>

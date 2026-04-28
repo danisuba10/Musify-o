@@ -13,6 +13,12 @@ using Application.Search;
 using Application.Core;
 using System.Text.Json.Serialization;
 using Application.Images;
+using Search.Variant1.Pagination;
+using Search.Variant2_1.LevenshteinBasic;
+using Search.Variant2_2.LevenshteinStack;
+using Search.Variant3_1.DamerauBasic;
+using Search.Variant3_2.DamerauStack;
+using Search.Variant3_3.DamerauBitmap;
 using Microsoft.EntityFrameworkCore.Design;
 using DotNetEnv;
 using Microsoft.OpenApi.Models;
@@ -233,6 +239,17 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
 });
+
+// ============================================================
+// SEARCH ENGINE VARIANT — uncomment exactly ONE line
+// ============================================================
+// builder.Services.AddVariant1_Search();
+// builder.Services.AddVariant2_1_Search();
+// builder.Services.AddVariant2_2_Search();
+// builder.Services.AddVariant3_1_Search();
+// builder.Services.AddVariant3_2_Search();
+builder.Services.AddVariant3_3_Search();           // Variant 3.3: Damerau-Levenshtein + Bitmaps
+// ============================================================
 
 var app = builder.Build();
 
