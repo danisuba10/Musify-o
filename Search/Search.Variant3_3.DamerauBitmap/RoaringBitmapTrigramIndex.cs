@@ -160,45 +160,74 @@ internal sealed class RoaringBitmapTrigramIndex
         _lock.EnterReadLock();
         try
         {
-            var trigrams = GetTrigrams(normalisedQuery).Distinct().ToList();
-            if (trigrams.Count == 0) return [];
+            // Single-pass trigram extraction: distinct set + matching bitmaps + union.
+            // No iterator, no LINQ, no intermediate List allocation.
+            if (string.IsNullOrEmpty(normalisedQuery)) return [];
+            var padded = "  " + normalisedQuery + " ";
+            int pCount = padded.Length - 2;
+            if (pCount <= 0) return [];
 
-            int tc = trigrams.Count;
-            // Threshold: how many query trigrams must a candidate share to be kept.
-            // Transpositions destroy trigram pairs completely ("dark"→"drak" shares 0 of 2),
-            // so thresholds must be lenient enough to survive worst-case two-edit typos.
-            // Verified against every two-edit assertion in CorrectnessValidator.
+            var distinct = new HashSet<string>(capacity: pCount, StringComparer.Ordinal);
+            var bitmaps  = new List<RoaringBitmap>(pCount);
+            RoaringBitmap? union = null;
+            for (int i = 0; i < pCount; i++)
+            {
+                var tri = padded.Substring(i, 3);
+                if (!distinct.Add(tri)) continue;
+                if (!_frozenIndex.TryGetValue(tri, out var bm)) continue;
+                bitmaps.Add(bm);
+                union = union == null ? bm : union | bm;
+            }
+
+            int tc = distinct.Count;
+            if (tc == 0 || union == null) return [];
+
+            // Threshold (unchanged): how many query trigrams must a candidate share.
             int minShared = tc switch
             {
                 <= 4 => 1,
                 <= 6 => 2,
-                <= 9 => Math.Max(2, tc - 6),   // allows up to 6 misses (tc=9 → 3)
-                _    => Math.Max(2, tc / 3)     // allows up to 2/3 to be lost to transpositions
+                <= 9 => Math.Max(2, tc - 6),
+                _    => Math.Max(2, tc / 3)
             };
 
-            // Count how many query trigrams each candidate index matches.
-            var counts = new Dictionary<int, int>(capacity: 1024);
-            foreach (var trigram in trigrams)
+            // Pooled byte[] candidate counter (was: Dictionary<int,int>).
+            // For hot trigrams over 1M entities the dict resized through hundreds
+            // of thousands of slots per query and dominated CPU + GC pressure.
+            // byte[] is O(1) per write with zero per-query allocation; minShared
+            // is small (<= ~25) so saturation at 255 is irrelevant.
+            int entriesCount = _entries.Count;
+            var counts = System.Buffers.ArrayPool<byte>.Shared.Rent(entriesCount);
+            try
             {
-                if (!_frozenIndex.TryGetValue(trigram, out var bm)) continue;
-                foreach (int idx in bm)
-                {
-                    counts.TryGetValue(idx, out int c);
-                    counts[idx] = c + 1;
-                }
-            }
+                foreach (var bm in bitmaps)
+                    foreach (int idx in bm)
+                    {
+                        if (counts[idx] < 255) counts[idx]++;
+                    }
 
-            // Collect candidates that pass the threshold, are alive, and match the type filter.
-            var result = new List<(Guid, string)>(64);
-            foreach (var (idx, cnt) in counts)
-            {
-                if (cnt < minShared) continue;
-                if (_tombstones.Contains(idx)) continue;
-                var entry = _entries[idx];
-                if (filter != SearchEntityType.All && entry.EntityType != filter) continue;
-                result.Add((entry.Id, _nameLowers[idx]));
+                // Iterate the union bitmap (much smaller than a full entries scan)
+                // and harvest candidates that meet the shared-trigram threshold.
+                // Each touched cell is reset to 0 inline so the rented buffer can
+                // be returned without a second clear pass.
+                var result = new List<(Guid, string)>(64);
+                bool typeFiltered = filter != SearchEntityType.All;
+                foreach (int idx in union)
+                {
+                    byte cnt = counts[idx];
+                    counts[idx] = 0;
+                    if (cnt < minShared) continue;
+                    if (_tombstones.Contains(idx)) continue;
+                    var entry = _entries[idx];
+                    if (typeFiltered && entry.EntityType != filter) continue;
+                    result.Add((entry.Id, _nameLowers[idx]));
+                }
+                return result;
             }
-            return result;
+            finally
+            {
+                System.Buffers.ArrayPool<byte>.Shared.Return(counts, clearArray: false);
+            }
         }
         finally { _lock.ExitReadLock(); }
     }

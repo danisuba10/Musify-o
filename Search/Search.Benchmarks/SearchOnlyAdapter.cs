@@ -69,7 +69,7 @@ internal sealed class SearchOnlyAdapter
             int  maxDist   = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             return ScoreAndTopK(candidates, normalised, multiWord, maxDist,
-                (q, n) => V21Calc.Compute(q, n));
+                (q, n, _) => V21Calc.Compute(q, n));
         });
     }
 
@@ -85,7 +85,7 @@ internal sealed class SearchOnlyAdapter
             int  maxDist   = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             return ScoreAndTopK(candidates, normalised, multiWord, maxDist,
-                (q, n) => V22Calc.Compute(q, n));
+                (q, n, _) => V22Calc.Compute(q, n));
         });
     }
 
@@ -101,7 +101,7 @@ internal sealed class SearchOnlyAdapter
             int  maxDist   = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             return ScoreAndTopK(candidates, normalised, multiWord, maxDist,
-                (q, n) => V31Calc.Compute(q, n));
+                (q, n, _) => V31Calc.Compute(q, n));
         });
     }
 
@@ -117,7 +117,7 @@ internal sealed class SearchOnlyAdapter
             int  maxDist   = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             return ScoreAndTopK(candidates, normalised, multiWord, maxDist,
-                (q, n) => V32Calc.Compute(q, n));
+                (q, n, _) => V32Calc.Compute(q, n));
         });
     }
 
@@ -137,13 +137,16 @@ internal sealed class SearchOnlyAdapter
             int  maxDist   = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             return ScoreAndTopK(candidates, normalised, multiWord, maxDist,
-                (q, n) => V33Calc.Compute(q, n));
+                (q, n, md) => V33Calc.Compute(q, n, md));
         });
     }
 
     // ── Shared scoring kernel ─────────────────────────────────────────────
     // delegate signature avoids per-call allocation from boxing ReadOnlySpan<char>.
-    private delegate int DistanceFn(ReadOnlySpan<char> query, ReadOnlySpan<char> name);
+    // The maxDist parameter is forwarded so calculators that support an
+    // Ukkonen-style row-min cutoff (V3.3) can bail out of the DP early; others
+    // simply ignore it and we re-check after returning.
+    private delegate int DistanceFn(ReadOnlySpan<char> query, ReadOnlySpan<char> name, int maxDist);
 
     private static IReadOnlyList<Guid> ScoreAndTopK(
         List<(Guid Id, string NameLower)> candidates,
@@ -170,7 +173,7 @@ internal sealed class SearchOnlyAdapter
             {
                 // Length-difference prefilter is only safe in whole-string mode.
                 if (Math.Abs(nameLower.Length - qLen) > maxDist) continue;
-                dist = distance(normalisedQuery.AsSpan(), nameLower.AsSpan());
+                dist = distance(normalisedQuery.AsSpan(), nameLower.AsSpan(), maxDist);
             }
             else
             {
@@ -178,7 +181,7 @@ internal sealed class SearchOnlyAdapter
                 foreach (var token in nameLower.Split(' '))
                 {
                     if (Math.Abs(token.Length - qLen) > maxDist) continue;
-                    int d = distance(normalisedQuery.AsSpan(), token.AsSpan());
+                    int d = distance(normalisedQuery.AsSpan(), token.AsSpan(), maxDist);
                     if (d < dist) { dist = d; if (dist == 0) break; }
                 }
                 if (dist == int.MaxValue) continue;
