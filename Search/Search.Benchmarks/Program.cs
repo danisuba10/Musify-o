@@ -7,6 +7,10 @@
 //   dotnet run -c Release -- --all         # both (takes many hours)
 //   dotnet run -c Release -- --smoke       # quick 10k sanity run: correctness + BDN dry + NBomber 5s
 //
+//   --variant=<id>   Limit to a single variant. id ∈ { 2_1, 2_2, 3_1, 3_2, 3_3, all }.
+//                    Aliases: 2.1/v2_1/V21 etc. Default: all.
+//                    Example: dotnet run -c Release --no-build -- --load --variant=2_1
+//
 // Output: results/results.csv (appended per run; partial runs are not lost)
 
 using BenchmarkDotNet.Configs;
@@ -16,9 +20,41 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using Search.Benchmarks;
 
-var mode = args.FirstOrDefault() ?? "--load";
+// ── Argument parsing ───────────────────────────────────────────────────────
+// First non-flag-prefixed positional is the mode; --variant=<id> is optional.
+string mode = "--load";
+string variantFilter = "all";
+foreach (var raw in args)
+{
+    if (raw.StartsWith("--variant=", StringComparison.OrdinalIgnoreCase))
+        variantFilter = raw.Substring("--variant=".Length);
+    else if (raw.StartsWith("--variant:", StringComparison.OrdinalIgnoreCase))
+        variantFilter = raw.Substring("--variant:".Length);
+    else
+        mode = raw;
+}
 var smoke = mode == "--smoke";
 if (smoke) mode = "--all";
+
+// Normalise variant filter to canonical form ("2_1", "2_2", "3_1", "3_2", "3_3", or "all").
+static string NormaliseVariant(string raw)
+{
+    var s = raw.Trim().ToLowerInvariant().TrimStart('v').Replace(".", "_");
+    if (s is "all" or "") return "all";
+    // Accept "21" → "2_1"
+    if (s.Length == 2 && char.IsDigit(s[0]) && char.IsDigit(s[1]))
+        s = $"{s[0]}_{s[1]}";
+    if (s is "2_1" or "2_2" or "3_1" or "3_2" or "3_3") return s;
+    throw new ArgumentException(
+        $"Unknown --variant '{raw}'. Expected one of: 2_1, 2_2, 3_1, 3_2, 3_3, all.");
+}
+variantFilter = NormaliseVariant(variantFilter);
+bool VariantSelected(string variantName) =>
+    variantFilter == "all" ||
+    variantName.StartsWith($"Variant{variantFilter}", StringComparison.OrdinalIgnoreCase);
+
+if (variantFilter != "all")
+    Console.WriteLine($"[filter] Limiting run to Variant{variantFilter}.\n");
 
 // ── Thread-pool warm-up ────────────────────────────────────────────────────
 // Default min worker threads = #cores. Under high concurrent NBomber load the
@@ -47,6 +83,7 @@ if (mode is "--load" or "--all")
     foreach (var adapter in BenchmarkMatrix.BuildVariants(10_000, writer))
     {
         if (adapter == null) continue;
+        if (!VariantSelected(adapter.VariantName)) continue;
         CorrectnessValidator.Validate(adapter);
     }
     Console.WriteLine("All variants passed correctness checks. Starting benchmarks.\n");
@@ -66,6 +103,14 @@ if (mode is "--latency" or "--all")
         // Full job — all [Params] combinations, .NET 8.0 runtime.
         : ManualConfig.Create(DefaultConfig.Instance)
             .AddJob(Job.Default.WithRuntime(CoreRuntime.Core80).WithId(".NET 8.0"));
+
+    if (variantFilter != "all")
+    {
+        // BenchmarkDotNet method names follow the SearchAsync_VariantX_Y pattern.
+        var needle = $"Variant{variantFilter}";
+        bdnConfig = bdnConfig.AddFilter(new SimpleFilter(bc =>
+            bc.Descriptor.WorkloadMethod.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)));
+    }
 
     BenchmarkRunner.Run<LatencyBenchmarks>(bdnConfig);
     if (mode is "--latency") return;
@@ -89,6 +134,18 @@ foreach (var entityCount in entityCounts)
 
     foreach (var factory in factories)
     {
+        // Cheap pre-check: each factory's name is encoded in its OomGuard label,
+        // but the adapter exposes VariantName only after build. To avoid building
+        // an index we will discard, peek at the factory index position.
+        int factoryIndex = factories.IndexOf(factory);
+        string variantTag = factoryIndex switch
+        {
+            0 => "2_1", 1 => "2_2", 2 => "3_1", 3 => "3_2", 4 => "3_3",
+            _ => ""
+        };
+        if (variantFilter != "all" && variantTag != variantFilter)
+            continue;
+
         var adapter = factory();
         if (adapter == null) continue;   // was OOM during Build()
 

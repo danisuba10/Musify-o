@@ -13,7 +13,7 @@ namespace Search.Benchmarks;
 internal static class BenchmarkMatrix
 {
     public static readonly long[]     EntityCounts  = { 1_000_000 };
-    public static readonly int[]      Concurrencies = { 100, 1_000, 10_000, 100_000 };
+    public static readonly int[]      Concurrencies = { 100, 1_000, 5_000 };
     public static readonly TimeSpan   TestDuration  = TimeSpan.FromSeconds(30);
 
     /// <summary>
