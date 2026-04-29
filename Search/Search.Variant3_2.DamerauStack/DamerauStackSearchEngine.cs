@@ -10,7 +10,6 @@ internal sealed class DamerauStackSearchEngine : ISearchEngine
 {
     public string VariantName => "Variant3_2_DamerauStack";
 
-    private const int    MIN_TRIGRAM_MATCH  = 1;
     private const int    MAX_EDIT_DISTANCE  = 5;
     private const double EXACT_BONUS        = 0.5;
     private const int    MAX_SCORED_RESULTS = 500;
@@ -51,30 +50,42 @@ internal sealed class DamerauStackSearchEngine : ISearchEngine
 
         if (!_cache.TryGetValue(cacheKey, out List<Guid>? snapshot))
         {
-            var candidates = GetCandidates(normalised, query.EntityFilter);
-            var scored     = new List<(Guid Id, double Score)>(candidates.Count);
+            // Phase 1+2: adaptive trigram filter, length prefilter, top-K min-heap.
+            // See Variant 2.1 for full rationale.
+            var candidates = _index.GetFilteredCandidates(normalised, query.EntityFilter);
+            int qLen = normalised.Length;
+            var heap = new PriorityQueue<Guid, double>(MAX_SCORED_RESULTS);
 
-            foreach (var (id, _) in candidates)
+            foreach (var (id, nameLower) in candidates)
             {
-                if (!_index.TryGetEntry(id, out var entry)) continue;
+                if (Math.Abs(nameLower.Length - qLen) > MAX_EDIT_DISTANCE) continue;
 
                 int dist = DamerauStackCalculator.Compute(
-                    normalised.AsSpan(),
-                    entry.Name.ToLowerInvariant().AsSpan());
+                    normalised.AsSpan(), nameLower.AsSpan());
 
                 if (dist > MAX_EDIT_DISTANCE) continue;
 
                 double score = 1.0 / (1.0 + dist);
                 if (dist == 0) score += EXACT_BONUS;
 
-                scored.Add((id, score));
+                if (heap.Count < MAX_SCORED_RESULTS) heap.Enqueue(id, score);
+                else                                  heap.EnqueueDequeue(id, score);
             }
 
-            snapshot = scored
-                .OrderByDescending(x => x.Score)
-                .Take(MAX_SCORED_RESULTS)
-                .Select(x => x.Id)
-                .ToList();
+            // Deterministic tie-break: see Variant 2.1 for rationale.
+            var ordered = new (Guid Id, double Score)[heap.Count];
+            for (int i = ordered.Length - 1; i >= 0; i--)
+            {
+                heap.TryDequeue(out var oid, out var osc);
+                ordered[i] = (oid, osc);
+            }
+            Array.Sort(ordered, (a, b) =>
+            {
+                int c = b.Score.CompareTo(a.Score);
+                return c != 0 ? c : b.Id.CompareTo(a.Id);
+            });
+            snapshot = new List<Guid>(ordered.Length);
+            foreach (var item in ordered) snapshot.Add(item.Id);
 
             _cache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
             {
@@ -110,26 +121,12 @@ internal sealed class DamerauStackSearchEngine : ISearchEngine
 
     private Dictionary<Guid, int> GetCandidates(string queryTerm, SearchEntityType filter)
     {
-        var trigrams = TrigramIndex.GetTrigrams(queryTerm).Distinct();
-        var counts   = new Dictionary<Guid, int>();
-
-        foreach (var trigram in trigrams)
-        {
-            if (!_index.TryGetCandidates(trigram, out var ids)) continue;
-
-            foreach (var id in ids)
-            {
-                if (filter != SearchEntityType.All
-                    && _index.TryGetEntry(id, out var entry)
-                    && entry.EntityType != filter)
-                    continue;
-
-                counts[id] = counts.TryGetValue(id, out var c) ? c + 1 : 1;
-            }
-        }
-
-        return counts.Where(kv => kv.Value >= MIN_TRIGRAM_MATCH)
-                     .ToDictionary(kv => kv.Key, kv => kv.Value);
+        // Kept for any future external use; the hot path now uses
+        // _index.GetFilteredCandidates directly inside SearchAsync.
+        var dict = new Dictionary<Guid, int>();
+        foreach (var (id, _) in _index.GetFilteredCandidates(queryTerm, filter))
+            dict[id] = 1;
+        return dict;
     }
 
     private async Task<List<SearchHit>> FetchHitsFromDb(

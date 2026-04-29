@@ -20,6 +20,18 @@ var mode = args.FirstOrDefault() ?? "--load";
 var smoke = mode == "--smoke";
 if (smoke) mode = "--all";
 
+// ── Thread-pool warm-up ────────────────────────────────────────────────────
+// Default min worker threads = #cores. Under high concurrent NBomber load the
+// thread-pool grows new workers at ~1 per ~500 ms, which alone produces
+// multi-second tail latencies during the first 30 s of every scenario.
+// Pre-allocate enough workers to cover the largest concurrency level we run.
+{
+    int desiredMin = Math.Max(BenchmarkMatrix.Concurrencies.Max(), 256);
+    ThreadPool.GetMinThreads(out var oldWorker, out var oldIo);
+    ThreadPool.SetMinThreads(Math.Max(oldWorker, desiredMin),
+                             Math.Max(oldIo,     desiredMin));
+}
+
 // Anchor results path to the exe directory so it always lands in
 // Search.Benchmarks/results/ regardless of the working directory.
 var resultsPath = Path.Combine(
@@ -72,11 +84,12 @@ foreach (var entityCount in entityCounts)
 {
     Console.WriteLine($"\n=== Entity count: {entityCount:N0} ===");
 
-    // Build each variant's index fresh for this entity count.
-    var variants = BenchmarkMatrix.BuildVariants(entityCount, writer);
+    // Build each variant one at a time so only one index lives in RAM per run.
+    var factories = BenchmarkMatrix.GetVariantFactories(entityCount, writer);
 
-    foreach (var adapter in variants)
+    foreach (var factory in factories)
     {
+        var adapter = factory();
         if (adapter == null) continue;   // was OOM during Build()
 
         // Warm up JIT before measuring
@@ -84,13 +97,14 @@ foreach (var entityCount in entityCounts)
 
         foreach (var users in concurrencies)
         {
-            Console.WriteLine($"  {adapter.VariantName} | {users:N0} users");
-            var stats = LoadTestRunner.Run(adapter, users, duration);
+            Console.WriteLine($"  {adapter.VariantName} | {entityCount:N0} entities | {users:N0} users");
+            var stats = LoadTestRunner.Run(adapter, entityCount, users, duration);
             writer.Append(entityCount, stats);
         }
-    }
 
-    BenchmarkMatrix.ForceGc();
+        // Release this variant's index before building the next one.
+        BenchmarkMatrix.ForceGc();
+    }
 }
 
 Console.WriteLine($"\nDone. Results written to {resultsPath}");

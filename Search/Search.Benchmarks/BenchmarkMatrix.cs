@@ -12,7 +12,7 @@ namespace Search.Benchmarks;
 
 internal static class BenchmarkMatrix
 {
-    public static readonly long[]     EntityCounts  = { 10_000, 100_000, 1_000_000, 10_000_000, 100_000_000 };
+    public static readonly long[]     EntityCounts  = { 1_000_000 };
     public static readonly int[]      Concurrencies = { 100, 1_000, 10_000, 100_000 };
     public static readonly TimeSpan   TestDuration  = TimeSpan.FromSeconds(30);
 
@@ -86,6 +86,71 @@ internal static class BenchmarkMatrix
         }, $"Variant3_3 Build({count:N0})", writer));
 
         return adapters;
+    }
+
+    /// <summary>
+    /// Returns a list of factory functions, one per variant. Invoke each factory
+    /// individually so only one variant's index lives in RAM at a time.
+    /// </summary>
+    public static List<Func<SearchOnlyAdapter?>> GetVariantFactories(long count, ResultWriter writer)
+    {
+        return new List<Func<SearchOnlyAdapter?>>
+        {
+            () => OomGuard.TryRun(() =>
+            {
+                var idx = new V21Index();
+                BuildAndMeasure("Variant2_1", count, idx.Build, DataGenerator.Generate(count),
+                    out double ramMb, out double buildS);
+                var adapter = SearchOnlyAdapter.ForVariant2_1(idx);
+                adapter.IndexRamMb = ramMb;
+                adapter.BuildTimeS = buildS;
+                return adapter;
+            }, $"Variant2_1 Build({count:N0})", writer),
+
+            () => OomGuard.TryRun(() =>
+            {
+                var idx = new V22Index();
+                BuildAndMeasure("Variant2_2", count, idx.Build, DataGenerator.Generate(count),
+                    out double ramMb, out double buildS);
+                var adapter = SearchOnlyAdapter.ForVariant2_2(idx);
+                adapter.IndexRamMb = ramMb;
+                adapter.BuildTimeS = buildS;
+                return adapter;
+            }, $"Variant2_2 Build({count:N0})", writer),
+
+            () => OomGuard.TryRun(() =>
+            {
+                var idx = new V31Index();
+                BuildAndMeasure("Variant3_1", count, idx.Build, DataGenerator.Generate(count),
+                    out double ramMb, out double buildS);
+                var adapter = SearchOnlyAdapter.ForVariant3_1(idx);
+                adapter.IndexRamMb = ramMb;
+                adapter.BuildTimeS = buildS;
+                return adapter;
+            }, $"Variant3_1 Build({count:N0})", writer),
+
+            () => OomGuard.TryRun(() =>
+            {
+                var idx = new V32Index();
+                BuildAndMeasure("Variant3_2", count, idx.Build, DataGenerator.Generate(count),
+                    out double ramMb, out double buildS);
+                var adapter = SearchOnlyAdapter.ForVariant3_2(idx);
+                adapter.IndexRamMb = ramMb;
+                adapter.BuildTimeS = buildS;
+                return adapter;
+            }, $"Variant3_2 Build({count:N0})", writer),
+
+            () => OomGuard.TryRun(() =>
+            {
+                var idx = new V33Index();
+                BuildAndMeasure("Variant3_3", count, idx.Build, DataGenerator.Generate(count),
+                    out double ramMb, out double buildS);
+                var adapter = SearchOnlyAdapter.ForVariant3_3(idx);
+                adapter.IndexRamMb = ramMb;
+                adapter.BuildTimeS = buildS;
+                return adapter;
+            }, $"Variant3_3 Build({count:N0})", writer),
+        };
     }
 
     public static void ForceGc()

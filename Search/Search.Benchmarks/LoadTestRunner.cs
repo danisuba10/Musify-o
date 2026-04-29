@@ -8,15 +8,22 @@ internal static class LoadTestRunner
 {
     public static NBomberStats Run(
         SearchOnlyAdapter adapter,
+        long entityCount,
         int concurrentUsers,
         TimeSpan duration)
     {
-        var scenario = Scenario.Create($"search_{adapter.VariantName}_{concurrentUsers}u", async context =>
+        var scenario = Scenario.Create($"search_{adapter.VariantName}_{entityCount:N0}e_{concurrentUsers}u", async context =>
         {
             var term = QueryPool.GetRandom();
-            // ScoreOnly is CPU-bound. Wrap in Task.Run so NBomber's async
-            // scheduler does not block its own thread pool.
-            var result = await Task.Run(() => adapter.ScoreOnly(term));
+            // ScoreOnly is CPU-bound. Wrapping it in Task.Run was previously used to
+            // avoid blocking NBomber's async scheduler, but at high concurrency this
+            // doubled the thread-pool pressure (one TP slot for the NBomber awaiter
+            // plus one for the work item) and amplified tail latencies. NBomber's
+            // scheduler is fine with synchronous CPU work — keeping the call inline
+            // halves the TP demand and lets the per-virtual-user back-pressure cap
+            // queue depth naturally.
+            await Task.Yield();
+            var result = adapter.ScoreOnly(term);
             return result.Count >= 0 ? Response.Ok() : Response.Fail();
         })
         .WithoutWarmUp()
