@@ -1,0 +1,11 @@
+2026-04-29 00:56:51.365 +03:00 [INF] [ThreadId:1] NBomber 6.3.0 started a new session: 2026-04-28_21-56-51_8c8976a7
+2026-04-29 00:56:51.374 +03:00 [INF] [ThreadId:1] NBomber started as single node
+2026-04-29 00:56:51.374 +03:00 [INF] [ThreadId:1] License validation....
+2026-04-29 00:56:51.374 +03:00 [WRN] [ThreadId:1] THIS VERSION IS FREE ONLY FOR PERSONAL USE. You can't use it for an organization.
+2026-04-29 00:56:51.375 +03:00 [INF] [ThreadId:1] Reports folder: C:\Users\Reea\Documents\Projects\Personal\Musify\backend\Search\Search.Benchmarks\bin\Release\net8.0\reports\2026-04-28_21-56-51_8c8976a7
+2026-04-29 00:56:51.377 +03:00 [INF] [ThreadId:1] Plugins: no plugins were loaded
+2026-04-29 00:56:51.377 +03:00 [INF] [ThreadId:1] Reporting sinks: no reporting sinks were loaded
+2026-04-29 00:56:51.378 +03:00 [INF] [ThreadId:1] Starting init...
+2026-04-29 00:56:51.378 +03:00 [INF] [ThreadId:1] Target scenarios: search_Variant2_1_LevenshteinBasic_1000u
+2026-04-29 00:56:51.378 +03:00 [INF] [ThreadId:1] Init finished
+2026-04-29 00:56:51.378 +03:00 [INF] [ThreadId:1] Starting bombing...

@@ -1,6 +1,5 @@
 // Search.Benchmarks/LatencyBenchmarks.cs
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 
 using V21Index = Search.Variant2_1.LevenshteinBasic.TrigramIndex;
 using V22Index = Search.Variant2_2.LevenshteinStack.TrigramIndex;
@@ -16,7 +15,6 @@ namespace Search.Benchmarks;
 /// BenchmarkDotNet requires Release build (Optimize=true in csproj).
 /// </summary>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 [HtmlExporter, CsvExporter]
 public class LatencyBenchmarks
 {

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Search.Benchmarks.LatencyBenchmarks-20260428-235145</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.8246/25H2/2025Update/HudsonValley2)
+Intel Core Ultra 9 285H 2.90GHz, 1 CPU, 16 logical and 16 physical cores
+.NET SDK 10.0.103
+  [Host]   : .NET 8.0.26 (8.0.26, 8.0.2626.16921), X64 RyuJIT x86-64-v3
+  .NET 8.0 : .NET 8.0.26 (8.0.26, 8.0.2626.16921), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>Job=.NET 8.0  Runtime=.NET 8.0  
+</code></pre>
+
+<table>
+<thead><tr><th>Method</th><th>EntityCount</th><th>Variant</th><th>Mean  </th><th>Error </th><th>StdDev</th><th>Median</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>Search</td><td>10000</td><td>Variant2_1</td><td>429.1 &mu;s</td><td>9.43 &mu;s</td><td>27.80 &mu;s</td><td>439.0 &mu;s</td><td>21.4844</td><td>2.9297</td><td>-</td><td>268.23 KB</td>
+</tr><tr><td>Search</td><td>10000</td><td>Variant2_2</td><td>446.8 &mu;s</td><td>1.56 &mu;s</td><td>1.38 &mu;s</td><td>446.8 &mu;s</td><td>9.7656</td><td>0.9766</td><td>-</td><td>120.78 KB</td>
+</tr><tr><td>Search</td><td>10000</td><td>Variant3_1</td><td>547.4 &mu;s</td><td>2.69 &mu;s</td><td>2.38 &mu;s</td><td>547.7 &mu;s</td><td>27.8320</td><td>3.9063</td><td>-</td><td>341.96 KB</td>
+</tr><tr><td>Search</td><td>10000</td><td>Variant3_2</td><td>558.3 &mu;s</td><td>2.04 &mu;s</td><td>1.91 &mu;s</td><td>559.1 &mu;s</td><td>9.7656</td><td>0.9766</td><td>-</td><td>120.78 KB</td>
+</tr><tr><td>Search</td><td>10000</td><td>Variant3_3</td><td>515.2 &mu;s</td><td>2.13 &mu;s</td><td>1.99 &mu;s</td><td>515.5 &mu;s</td><td>5.8594</td><td>-</td><td>-</td><td>72.53 KB</td>
+</tr><tr><td>Search</td><td>100000</td><td>Variant2_1</td><td>5,374.6 &mu;s</td><td>100.40 &mu;s</td><td>181.05 &mu;s</td><td>5,349.2 &mu;s</td><td>187.5000</td><td>39.0625</td><td>7.8125</td><td>3323.45 KB</td>
+</tr><tr><td>Search</td><td>100000</td><td>Variant2_2</td><td>5,269.5 &mu;s</td><td>101.67 &mu;s</td><td>135.72 &mu;s</td><td>5,285.2 &mu;s</td><td>62.5000</td><td>15.6250</td><td>7.8125</td><td>1742.92 KB</td>
+</tr><tr><td>Search</td><td>100000</td><td>Variant3_1</td><td>6,313.9 &mu;s</td><td>125.65 &mu;s</td><td>191.89 &mu;s</td><td>6,347.2 &mu;s</td><td>257.8125</td><td>54.6875</td><td>7.8125</td><td>4113.71 KB</td>
+</tr><tr><td>Search</td><td>100000</td><td>Variant3_2</td><td>6,510.0 &mu;s</td><td>125.69 &mu;s</td><td>134.48 &mu;s</td><td>6,534.5 &mu;s</td><td>62.5000</td><td>15.6250</td><td>7.8125</td><td>1742.92 KB</td>
+</tr><tr><td>Search</td><td>100000</td><td>Variant3_3</td><td>6,200.7 &mu;s</td><td>122.79 &mu;s</td><td>284.59 &mu;s</td><td>6,294.4 &mu;s</td><td>54.6875</td><td>-</td><td>-</td><td>685.96 KB</td>
+</tr><tr><td>Search</td><td>1000000</td><td>Variant2_1</td><td>70,358.6 &mu;s</td><td>987.22 &mu;s</td><td>923.44 &mu;s</td><td>70,439.9 &mu;s</td><td>1750.0000</td><td>-</td><td>-</td><td>32859.11 KB</td>
+</tr><tr><td>Search</td><td>1000000</td><td>Variant2_2</td><td>72,490.7 &mu;s</td><td>304.05 &mu;s</td><td>284.41 &mu;s</td><td>72,569.0 &mu;s</td><td>285.7143</td><td>-</td><td>-</td><td>16483.17 KB</td>
+</tr><tr><td>Search</td><td>1000000</td><td>Variant3_1</td><td>83,409.3 &mu;s</td><td>618.54 &mu;s</td><td>578.58 &mu;s</td><td>83,264.9 &mu;s</td><td>2285.7143</td><td>-</td><td>-</td><td>41047.08 KB</td>
+</tr><tr><td>Search</td><td>1000000</td><td>Variant3_2</td><td>84,049.0 &mu;s</td><td>685.36 &mu;s</td><td>572.30 &mu;s</td><td>84,072.2 &mu;s</td><td>333.3333</td><td>-</td><td>-</td><td>16483.17 KB</td>
+</tr><tr><td>Search</td><td>1000000</td><td>Variant3_3</td><td>76,032.7 &mu;s</td><td>453.44 &mu;s</td><td>401.96 &mu;s</td><td>76,020.4 &mu;s</td><td>428.5714</td><td>-</td><td>-</td><td>6851.3 KB</td>
+</tr><tr><td>Search</td><td>10000000</td><td>Variant2_1</td><td>788,015.3 &mu;s</td><td>10,914.12 &mu;s</td><td>10,209.07 &mu;s</td><td>785,695.9 &mu;s</td><td>18000.0000</td><td>-</td><td>-</td><td>325753.85 KB</td>
+</tr><tr><td>Search</td><td>10000000</td><td>Variant2_2</td><td>812,134.4 &mu;s</td><td>10,206.02 &mu;s</td><td>9,546.72 &mu;s</td><td>810,676.8 &mu;s</td><td>4000.0000</td><td>-</td><td>-</td><td>156017.09 KB</td>
+</tr><tr><td>Search</td><td>10000000</td><td>Variant3_1</td><td>872,542.3 &mu;s</td><td>6,634.68 &mu;s</td><td>6,206.08 &mu;s</td><td>872,970.9 &mu;s</td><td>24000.0000</td><td>-</td><td>-</td><td>410622.23 KB</td>
+</tr><tr><td>Search</td><td>10000000</td><td>Variant3_2</td><td>906,543.9 &mu;s</td><td>8,050.06 &mu;s</td><td>7,530.03 &mu;s</td><td>905,782.7 &mu;s</td><td>4000.0000</td><td>-</td><td>-</td><td>156017.09 KB</td>
+</tr><tr><td>Search</td><td>10000000</td><td>Variant3_3</td><td>787,320.2 &mu;s</td><td>2,847.91 &mu;s</td><td>2,663.94 &mu;s</td><td>786,745.3 &mu;s</td><td>5000.0000</td><td>1000.0000</td><td>-</td><td>69689.3 KB</td>
+</tr></tbody></table>
+</body>
+</html>

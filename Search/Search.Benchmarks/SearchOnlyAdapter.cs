@@ -52,13 +52,18 @@ internal sealed class SearchOnlyAdapter
         {
             var normalised = term.Trim().ToLowerInvariant();
             var counts     = BuildCandidateCounts_V21(index, normalised, filter);
+            var multiWord  = normalised.Contains(' ');
+            int maxDist    = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             var scored = new List<(Guid Id, double Score)>(counts.Count);
             foreach (var (id, _) in counts)
             {
                 if (!index.TryGetEntry(id, out var entry)) continue;
-                int dist = V21Calc.Compute(normalised.AsSpan(), entry.Name.ToLowerInvariant().AsSpan());
-                if (dist > 5) continue;
+                var nameNorm = entry.Name.ToLowerInvariant();
+                int dist = multiWord
+                    ? V21Calc.Compute(normalised.AsSpan(), nameNorm.AsSpan())
+                    : nameNorm.Split(' ').Min(t => V21Calc.Compute(normalised.AsSpan(), t.AsSpan()));
+                if (dist > maxDist) continue;
                 scored.Add((id, 1.0 / (1.0 + dist) + (dist == 0 ? 0.5 : 0)));
             }
 
@@ -75,13 +80,18 @@ internal sealed class SearchOnlyAdapter
         {
             var normalised = term.Trim().ToLowerInvariant();
             var counts     = BuildCandidateCounts_V22(index, normalised, filter);
+            var multiWord  = normalised.Contains(' ');
+            int maxDist    = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             var scored = new List<(Guid Id, double Score)>(counts.Count);
             foreach (var (id, _) in counts)
             {
                 if (!index.TryGetEntry(id, out var entry)) continue;
-                int dist = V22Calc.Compute(normalised.AsSpan(), entry.Name.ToLowerInvariant().AsSpan());
-                if (dist > 5) continue;
+                var nameNorm = entry.Name.ToLowerInvariant();
+                int dist = multiWord
+                    ? V22Calc.Compute(normalised.AsSpan(), nameNorm.AsSpan())
+                    : nameNorm.Split(' ').Min(t => V22Calc.Compute(normalised.AsSpan(), t.AsSpan()));
+                if (dist > maxDist) continue;
                 scored.Add((id, 1.0 / (1.0 + dist) + (dist == 0 ? 0.5 : 0)));
             }
 
@@ -98,13 +108,18 @@ internal sealed class SearchOnlyAdapter
         {
             var normalised = term.Trim().ToLowerInvariant();
             var counts     = BuildCandidateCounts_V31(index, normalised, filter);
+            var multiWord  = normalised.Contains(' ');
+            int maxDist    = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             var scored = new List<(Guid Id, double Score)>(counts.Count);
             foreach (var (id, _) in counts)
             {
                 if (!index.TryGetEntry(id, out var entry)) continue;
-                int dist = V31Calc.Compute(normalised.AsSpan(), entry.Name.ToLowerInvariant().AsSpan());
-                if (dist > 5) continue;
+                var nameNorm = entry.Name.ToLowerInvariant();
+                int dist = multiWord
+                    ? V31Calc.Compute(normalised.AsSpan(), nameNorm.AsSpan())
+                    : nameNorm.Split(' ').Min(t => V31Calc.Compute(normalised.AsSpan(), t.AsSpan()));
+                if (dist > maxDist) continue;
                 scored.Add((id, 1.0 / (1.0 + dist) + (dist == 0 ? 0.5 : 0)));
             }
 
@@ -121,13 +136,18 @@ internal sealed class SearchOnlyAdapter
         {
             var normalised = term.Trim().ToLowerInvariant();
             var counts     = BuildCandidateCounts_V32(index, normalised, filter);
+            var multiWord  = normalised.Contains(' ');
+            int maxDist    = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
 
             var scored = new List<(Guid Id, double Score)>(counts.Count);
             foreach (var (id, _) in counts)
             {
                 if (!index.TryGetEntry(id, out var entry)) continue;
-                int dist = V32Calc.Compute(normalised.AsSpan(), entry.Name.ToLowerInvariant().AsSpan());
-                if (dist > 5) continue;
+                var nameNorm = entry.Name.ToLowerInvariant();
+                int dist = multiWord
+                    ? V32Calc.Compute(normalised.AsSpan(), nameNorm.AsSpan())
+                    : nameNorm.Split(' ').Min(t => V32Calc.Compute(normalised.AsSpan(), t.AsSpan()));
+                if (dist > maxDist) continue;
                 scored.Add((id, 1.0 / (1.0 + dist) + (dist == 0 ? 0.5 : 0)));
             }
 
@@ -147,6 +167,8 @@ internal sealed class SearchOnlyAdapter
 
             if (bitmap == null) return Array.Empty<Guid>();
 
+            var multiWord33 = normalised.Contains(' ');
+            int maxDist33   = multiWord33 ? 5 : Math.Min(3, normalised.Length / 2);
             var scored = new List<(Guid Id, double Score)>(64);
             // RoaringBitmap iterates int (not uint) — see Equativ.RoaringBitmaps API
             foreach (int idx in bitmap)
@@ -154,8 +176,11 @@ internal sealed class SearchOnlyAdapter
                 if (index.IsTombstoned(idx)) continue;
                 var entry = index.GetEntry(idx);
                 if (filter != SearchEntityType.All && entry.EntityType != filter) continue;
-                int dist = V33Calc.Compute(normalised.AsSpan(), entry.Name.ToLowerInvariant().AsSpan());
-                if (dist > 5) continue;
+                var nameNorm33 = entry.Name.ToLowerInvariant();
+                int dist = multiWord33
+                    ? V33Calc.Compute(normalised.AsSpan(), nameNorm33.AsSpan())
+                    : nameNorm33.Split(' ').Min(t => V33Calc.Compute(normalised.AsSpan(), t.AsSpan()));
+                if (dist > maxDist33) continue;
                 scored.Add((entry.Id, 1.0 / (1.0 + dist) + (dist == 0 ? 0.5 : 0)));
             }
 

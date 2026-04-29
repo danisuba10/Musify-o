@@ -28,7 +28,7 @@ internal static class LoadTestRunner
 
         var nodeStats = NBomberRunner
             .RegisterScenarios(scenario)
-            .WithReportFolder(string.Empty)   // suppress report file generation
+            .WithReportFormats()   // empty = suppress all report file generation
             .Run();
 
         var s = nodeStats.ScenarioStats[0];
