@@ -163,25 +163,24 @@ internal sealed class SearchOnlyAdapter
         return new SearchOnlyAdapter("Variant3_3_DamerauBitmap", (term, filter) =>
         {
             var normalised = term.Trim().ToLowerInvariant();
-            var bitmap     = index.GetCandidateBitmap(normalised);
 
-            if (bitmap == null) return Array.Empty<Guid>();
+            // GetFilteredCandidates does threshold filtering, tombstone check, type filter,
+            // and name snapshot in a single read-lock acquisition — eliminating the
+            // per-candidate lock overhead and the full-union candidate explosion.
+            var candidates = index.GetFilteredCandidates(normalised, filter);
+            if (candidates.Count == 0) return Array.Empty<Guid>();
 
-            var multiWord33 = normalised.Contains(' ');
-            int maxDist33   = multiWord33 ? 5 : Math.Min(3, normalised.Length / 2);
-            var scored = new List<(Guid Id, double Score)>(64);
-            // RoaringBitmap iterates int (not uint) — see Equativ.RoaringBitmaps API
-            foreach (int idx in bitmap)
+            var multiWord = normalised.Contains(' ');
+            int maxDist   = multiWord ? 5 : Math.Min(3, normalised.Length / 2);
+
+            var scored = new List<(Guid Id, double Score)>(candidates.Count);
+            foreach (var (id, nameLower) in candidates)
             {
-                if (index.IsTombstoned(idx)) continue;
-                var entry = index.GetEntry(idx);
-                if (filter != SearchEntityType.All && entry.EntityType != filter) continue;
-                var nameNorm33 = entry.Name.ToLowerInvariant();
-                int dist = multiWord33
-                    ? V33Calc.Compute(normalised.AsSpan(), nameNorm33.AsSpan())
-                    : nameNorm33.Split(' ').Min(t => V33Calc.Compute(normalised.AsSpan(), t.AsSpan()));
-                if (dist > maxDist33) continue;
-                scored.Add((entry.Id, 1.0 / (1.0 + dist) + (dist == 0 ? 0.5 : 0)));
+                int dist = multiWord
+                    ? V33Calc.Compute(normalised.AsSpan(), nameLower.AsSpan())
+                    : nameLower.Split(' ').Min(t => V33Calc.Compute(normalised.AsSpan(), t.AsSpan()));
+                if (dist > maxDist) continue;
+                scored.Add((id, 1.0 / (1.0 + dist) + (dist == 0 ? 0.5 : 0)));
             }
 
             return scored.OrderByDescending(x => x.Score)

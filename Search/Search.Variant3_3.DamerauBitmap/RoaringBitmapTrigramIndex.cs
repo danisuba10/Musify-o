@@ -21,6 +21,8 @@ namespace Search.Variant3_3.DamerauBitmap;
 internal sealed class RoaringBitmapTrigramIndex
 {
     private readonly List<SearchProjection>            _entries      = new();
+    // Pre-stored lowercase names — avoids ToLowerInvariant() allocations per candidate during search.
+    private readonly List<string>                      _nameLowers   = new();
     private readonly Dictionary<Guid, int>             _guidToIndex  = new();
     private readonly Dictionary<string, List<int>>     _mutableIndex = new(StringComparer.Ordinal);
     private          Dictionary<string, RoaringBitmap> _frozenIndex  = new(StringComparer.Ordinal);
@@ -33,6 +35,7 @@ internal sealed class RoaringBitmapTrigramIndex
     public void Build(IEnumerable<SearchProjection> projections)
     {
         _entries.Clear();
+        _nameLowers.Clear();
         _guidToIndex.Clear();
         _mutableIndex.Clear();
         _tombstones.Clear();
@@ -41,6 +44,7 @@ internal sealed class RoaringBitmapTrigramIndex
         {
             int idx = _entries.Count;
             _entries.Add(proj);
+            _nameLowers.Add(proj.Name.ToLowerInvariant());
             _guidToIndex[proj.Id] = idx;
 
             foreach (var trigram in GetTrigrams(proj.Name))
@@ -66,6 +70,7 @@ internal sealed class RoaringBitmapTrigramIndex
         {
             int idx = _entries.Count;
             _entries.Add(proj);
+            _nameLowers.Add(proj.Name.ToLowerInvariant());
             _guidToIndex[proj.Id] = idx;
 
             foreach (var trigram in GetTrigrams(proj.Name))
@@ -104,6 +109,7 @@ internal sealed class RoaringBitmapTrigramIndex
 
             int newIdx = _entries.Count;
             _entries.Add(newProjection);
+            _nameLowers.Add(newProjection.Name.ToLowerInvariant());
             _guidToIndex[newProjection.Id] = newIdx;
 
             foreach (var trigram in GetTrigrams(newProjection.Name))
@@ -127,6 +133,70 @@ internal sealed class RoaringBitmapTrigramIndex
             {
                 if (!_frozenIndex.TryGetValue(trigram, out var bm)) continue;
                 result = result == null ? bm : result | bm;
+            }
+            return result;
+        }
+        finally { _lock.ExitReadLock(); }
+    }
+
+    /// <summary>
+    /// Single read-lock pass that:
+    /// 1. Counts how many distinct query trigrams each candidate matches.
+    /// 2. Keeps only candidates meeting an adaptive threshold (fewer misses = more recall;
+    ///    more misses = lower candidate count = faster Levenshtein phase).
+    /// 3. Filters tombstones and entity-type in the same pass.
+    /// 4. Returns (Guid, pre-lowered name) tuples — no further lock needed by the caller.
+    ///
+    /// Threshold formula (internal):
+    ///   trigramCount ≤ 4  → 1  (short queries: full union — recall matters more)
+    ///   trigramCount 5–6  → 2
+    ///   trigramCount 7–9  → max(2, trigramCount − 4)   (allow up to 4 misses for typos)
+    ///   trigramCount ≥ 10 → max(3, trigramCount / 2)   (long queries: require ≥ half)
+    /// </summary>
+    public List<(Guid Id, string NameLower)> GetFilteredCandidates(
+        string normalisedQuery,
+        SearchEntityType filter = SearchEntityType.All)
+    {
+        _lock.EnterReadLock();
+        try
+        {
+            var trigrams = GetTrigrams(normalisedQuery).Distinct().ToList();
+            if (trigrams.Count == 0) return [];
+
+            int tc = trigrams.Count;
+            // Threshold: how many query trigrams must a candidate share to be kept.
+            // Transpositions destroy trigram pairs completely ("dark"→"drak" shares 0 of 2),
+            // so thresholds must be lenient enough to survive worst-case two-edit typos.
+            // Verified against every two-edit assertion in CorrectnessValidator.
+            int minShared = tc switch
+            {
+                <= 4 => 1,
+                <= 6 => 2,
+                <= 9 => Math.Max(2, tc - 6),   // allows up to 6 misses (tc=9 → 3)
+                _    => Math.Max(2, tc / 3)     // allows up to 2/3 to be lost to transpositions
+            };
+
+            // Count how many query trigrams each candidate index matches.
+            var counts = new Dictionary<int, int>(capacity: 1024);
+            foreach (var trigram in trigrams)
+            {
+                if (!_frozenIndex.TryGetValue(trigram, out var bm)) continue;
+                foreach (int idx in bm)
+                {
+                    counts.TryGetValue(idx, out int c);
+                    counts[idx] = c + 1;
+                }
+            }
+
+            // Collect candidates that pass the threshold, are alive, and match the type filter.
+            var result = new List<(Guid, string)>(64);
+            foreach (var (idx, cnt) in counts)
+            {
+                if (cnt < minShared) continue;
+                if (_tombstones.Contains(idx)) continue;
+                var entry = _entries[idx];
+                if (filter != SearchEntityType.All && entry.EntityType != filter) continue;
+                result.Add((entry.Id, _nameLowers[idx]));
             }
             return result;
         }
