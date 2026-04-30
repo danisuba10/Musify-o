@@ -7,13 +7,14 @@ using V22Index = Search.Variant2_2.LevenshteinStack.TrigramIndex;
 using V31Index = Search.Variant3_1.DamerauBasic.TrigramIndex;
 using V32Index = Search.Variant3_2.DamerauStack.TrigramIndex;
 using V33Index = Search.Variant3_3.DamerauBitmap.RoaringBitmapTrigramIndex;
+using V4Index  = Search.Variant4.FstAutomaton.FstTermIndex;
 
 namespace Search.Benchmarks;
 
 internal static class BenchmarkMatrix
 {
-    public static readonly long[]     EntityCounts  = { 20_000_000 };
-    public static readonly int[]      Concurrencies = { 1_000 };
+    public static readonly long[]     EntityCounts  = { 10_000_000 };
+    public static readonly int[]      Concurrencies = { 5_000 };
     public static readonly TimeSpan   TestDuration  = TimeSpan.FromSeconds(30);
 
     /// <summary>
@@ -85,6 +86,18 @@ internal static class BenchmarkMatrix
             return adapter;
         }, $"Variant3_3 Build({count:N0})", writer));
 
+        // Variant 4 — FST + Levenshtein automaton (Schulz–Mihov)
+        adapters.Add(OomGuard.TryRun(() =>
+        {
+            var idx = new V4Index();
+            BuildAndMeasure("Variant4", count, idx.Build, DataGenerator.Generate(count),
+                out double ramMb, out double buildS);
+            var adapter = SearchOnlyAdapter.ForVariant4(idx);
+            adapter.IndexRamMb = ramMb;
+            adapter.BuildTimeS = buildS;
+            return adapter;
+        }, $"Variant4 Build({count:N0})", writer));
+
         return adapters;
     }
 
@@ -150,6 +163,17 @@ internal static class BenchmarkMatrix
                 adapter.BuildTimeS = buildS;
                 return adapter;
             }, $"Variant3_3 Build({count:N0})", writer),
+
+            () => OomGuard.TryRun(() =>
+            {
+                var idx = new V4Index();
+                BuildAndMeasure("Variant4", count, idx.Build, DataGenerator.Generate(count),
+                    out double ramMb, out double buildS);
+                var adapter = SearchOnlyAdapter.ForVariant4(idx);
+                adapter.IndexRamMb = ramMb;
+                adapter.BuildTimeS = buildS;
+                return adapter;
+            }, $"Variant4 Build({count:N0})", writer),
         };
     }
 
