@@ -1,15 +1,15 @@
-// Search.Variant4.FstAutomaton/FstAutomatonSearchEngine.cs
+// Search.Variant4_1.FstAutomaton/FstAutomatonSearchEngine.cs
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Persistence;
 using Search.Abstractions;
 
-namespace Search.Variant4.FstAutomaton;
+namespace Search.Variant4_1.FstAutomaton;
 
 internal sealed class FstAutomatonSearchEngine : ISearchEngine
 {
-    public string VariantName => "Variant4_FstAutomaton";
+    public string VariantName => "Variant4_1_FstAutomaton";
 
     private const int MAX_SCORED_RESULTS = 500;
 

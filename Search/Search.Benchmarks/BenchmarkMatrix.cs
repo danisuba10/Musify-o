@@ -7,14 +7,15 @@ using V22Index = Search.Variant2_2.LevenshteinStack.TrigramIndex;
 using V31Index = Search.Variant3_1.DamerauBasic.TrigramIndex;
 using V32Index = Search.Variant3_2.DamerauStack.TrigramIndex;
 using V33Index = Search.Variant3_3.DamerauBitmap.RoaringBitmapTrigramIndex;
-using V4Index  = Search.Variant4.FstAutomaton.FstTermIndex;
+using V41Index = Search.Variant4_1.FstAutomaton.FstTermIndex;
+using V42Index = Search.Variant4_2.FstAutomaton.FstTermIndex;
 
 namespace Search.Benchmarks;
 
 internal static class BenchmarkMatrix
 {
     public static readonly long[]     EntityCounts  = { 10_000_000 };
-    public static readonly int[]      Concurrencies = { 5_000 };
+    public static readonly int[]      Concurrencies = { 1_000 };
     public static readonly TimeSpan   TestDuration  = TimeSpan.FromSeconds(30);
 
     /// <summary>
@@ -86,17 +87,29 @@ internal static class BenchmarkMatrix
             return adapter;
         }, $"Variant3_3 Build({count:N0})", writer));
 
-        // Variant 4 — FST + Levenshtein automaton (Schulz–Mihov)
+        // Variant 4.1 — FST + Levenshtein automaton (Schulz–Mihov), Dictionary best-distance map
         adapters.Add(OomGuard.TryRun(() =>
         {
-            var idx = new V4Index();
-            BuildAndMeasure("Variant4", count, idx.Build, DataGenerator.Generate(count),
+            var idx = new V41Index();
+            BuildAndMeasure("Variant4_1", count, idx.Build, DataGenerator.Generate(count),
                 out double ramMb, out double buildS);
-            var adapter = SearchOnlyAdapter.ForVariant4(idx);
+            var adapter = SearchOnlyAdapter.ForVariant4_1(idx);
             adapter.IndexRamMb = ramMb;
             adapter.BuildTimeS = buildS;
             return adapter;
-        }, $"Variant4 Build({count:N0})", writer));
+        }, $"Variant4_1 Build({count:N0})", writer));
+
+        // Variant 4.2 — FST + Levenshtein automaton with lazy heap-push (no per-query Dictionary)
+        adapters.Add(OomGuard.TryRun(() =>
+        {
+            var idx = new V42Index();
+            BuildAndMeasure("Variant4_2", count, idx.Build, DataGenerator.Generate(count),
+                out double ramMb, out double buildS);
+            var adapter = SearchOnlyAdapter.ForVariant4_2(idx);
+            adapter.IndexRamMb = ramMb;
+            adapter.BuildTimeS = buildS;
+            return adapter;
+        }, $"Variant4_2 Build({count:N0})", writer));
 
         return adapters;
     }
@@ -166,14 +179,25 @@ internal static class BenchmarkMatrix
 
             () => OomGuard.TryRun(() =>
             {
-                var idx = new V4Index();
-                BuildAndMeasure("Variant4", count, idx.Build, DataGenerator.Generate(count),
+                var idx = new V41Index();
+                BuildAndMeasure("Variant4_1", count, idx.Build, DataGenerator.Generate(count),
                     out double ramMb, out double buildS);
-                var adapter = SearchOnlyAdapter.ForVariant4(idx);
+                var adapter = SearchOnlyAdapter.ForVariant4_1(idx);
                 adapter.IndexRamMb = ramMb;
                 adapter.BuildTimeS = buildS;
                 return adapter;
-            }, $"Variant4 Build({count:N0})", writer),
+            }, $"Variant4_1 Build({count:N0})", writer),
+
+            () => OomGuard.TryRun(() =>
+            {
+                var idx = new V42Index();
+                BuildAndMeasure("Variant4_2", count, idx.Build, DataGenerator.Generate(count),
+                    out double ramMb, out double buildS);
+                var adapter = SearchOnlyAdapter.ForVariant4_2(idx);
+                adapter.IndexRamMb = ramMb;
+                adapter.BuildTimeS = buildS;
+                return adapter;
+            }, $"Variant4_2 Build({count:N0})", writer),
         };
     }
 

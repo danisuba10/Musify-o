@@ -1,7 +1,7 @@
 using MediatR;
 using Search.Abstractions;
 
-namespace Search.Variant4.FstAutomaton;
+namespace Search.Variant4_2.FstAutomaton;
 
 internal sealed class SearchIndexMutationHandler :
     INotificationHandler<SearchEntityCreatedNotification>,

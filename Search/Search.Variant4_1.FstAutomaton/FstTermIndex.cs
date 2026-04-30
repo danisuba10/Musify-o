@@ -1,4 +1,4 @@
-// Search.Variant4.FstAutomaton/FstTermIndex.cs
+// Search.Variant4_1.FstAutomaton/FstTermIndex.cs
 //
 // Term index backed by a Lucene.NET FST (Finite-State Transducer) plus
 // per-term Roaring posting lists. Queries are answered by intersecting the
@@ -39,7 +39,7 @@ using System.Globalization;
 using System.Text;
 using FstOutput = J2N.Numerics.Int64;
 
-namespace Search.Variant4.FstAutomaton;
+namespace Search.Variant4_1.FstAutomaton;
 
 internal sealed class FstTermIndex
 {

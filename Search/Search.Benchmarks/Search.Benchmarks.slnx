@@ -8,6 +8,7 @@
   <Project Path="../Search.Variant3_1.DamerauBasic/Search.Variant3_1.DamerauBasic.csproj" />
   <Project Path="../Search.Variant3_2.DamerauStack/Search.Variant3_2.DamerauStack.csproj" />
   <Project Path="../Search.Variant3_3.DamerauBitmap/Search.Variant3_3.DamerauBitmap.csproj" />
-  <Project Path="../Search.Variant4.FstAutomaton/Search.Variant4.FstAutomaton.csproj" />
+  <Project Path="../Search.Variant4_1.FstAutomaton/Search.Variant4_1.FstAutomaton.csproj" />
+  <Project Path="../Search.Variant4_2.FstAutomaton/Search.Variant4_2.FstAutomaton.csproj" />
   <Project Path="Search.Benchmarks.csproj" />
 </Solution>

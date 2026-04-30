@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Search.Abstractions;
 
-namespace Search.Variant4.FstAutomaton;
+namespace Search.Variant4_1.FstAutomaton;
 
 public static class FstAutomatonExtensions
 {

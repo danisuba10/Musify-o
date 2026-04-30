@@ -7,7 +7,7 @@
 //   dotnet run -c Release -- --all         # both (takes many hours)
 //   dotnet run -c Release -- --smoke       # quick 10k sanity run: correctness + BDN dry + NBomber 5s
 //
-//   --variant=<id>   Limit to a single variant. id ∈ { 2_1, 2_2, 3_1, 3_2, 3_3, 4, all }.
+//   --variant=<id>   Limit to a single variant. id ∈ { 2_1, 2_2, 3_1, 3_2, 3_3, 4_1, 4_2, all }.
 //                    Aliases: 2.1/v2_1/V21 etc. Default: all.
 //                    Example: dotnet run -c Release --no-build -- --load --variant=2_1
 //
@@ -36,7 +36,7 @@ foreach (var raw in args)
 var smoke = mode == "--smoke";
 if (smoke) mode = "--all";
 
-// Normalise variant filter to canonical form ("2_1", "2_2", "3_1", "3_2", "3_3", "4", or "all").
+// Normalise variant filter to canonical form ("2_1", "2_2", "3_1", "3_2", "3_3", "4_1", "4_2", or "all").
 static string NormaliseVariant(string raw)
 {
     var s = raw.Trim().ToLowerInvariant().TrimStart('v').Replace(".", "_");
@@ -44,9 +44,9 @@ static string NormaliseVariant(string raw)
     // Accept "21" → "2_1"
     if (s.Length == 2 && char.IsDigit(s[0]) && char.IsDigit(s[1]))
         s = $"{s[0]}_{s[1]}";
-    if (s is "2_1" or "2_2" or "3_1" or "3_2" or "3_3" or "4") return s;
+    if (s is "2_1" or "2_2" or "3_1" or "3_2" or "3_3" or "4_1" or "4_2") return s;
     throw new ArgumentException(
-        $"Unknown --variant '{raw}'. Expected one of: 2_1, 2_2, 3_1, 3_2, 3_3, 4, all.");
+        $"Unknown --variant '{raw}'. Expected one of: 2_1, 2_2, 3_1, 3_2, 3_3, 4_1, 4_2, all.");
 }
 variantFilter = NormaliseVariant(variantFilter);
 bool VariantSelected(string variantName) =>
@@ -140,7 +140,8 @@ foreach (var entityCount in entityCounts)
         int factoryIndex = factories.IndexOf(factory);
         string variantTag = factoryIndex switch
         {
-            0 => "2_1", 1 => "2_2", 2 => "3_1", 3 => "3_2", 4 => "3_3", 5 => "4",
+            0 => "2_1", 1 => "2_2", 2 => "3_1", 3 => "3_2", 4 => "3_3",
+            5 => "4_1", 6 => "4_2",
             _ => ""
         };
         if (variantFilter != "all" && variantTag != variantFilter)

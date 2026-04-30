@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Persistence;
 using Search.Abstractions;
 
-namespace Search.Variant4.FstAutomaton;
+namespace Search.Variant4_1.FstAutomaton;
 
 internal sealed class IndexBuilderService : BackgroundService
 {

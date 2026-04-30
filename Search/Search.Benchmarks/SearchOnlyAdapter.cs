@@ -8,7 +8,8 @@ using V22Index = Search.Variant2_2.LevenshteinStack.TrigramIndex;
 using V31Index = Search.Variant3_1.DamerauBasic.TrigramIndex;
 using V32Index = Search.Variant3_2.DamerauStack.TrigramIndex;
 using V33Index = Search.Variant3_3.DamerauBitmap.RoaringBitmapTrigramIndex;
-using V4Index  = Search.Variant4.FstAutomaton.FstTermIndex;
+using V41Index = Search.Variant4_1.FstAutomaton.FstTermIndex;
+using V42Index = Search.Variant4_2.FstAutomaton.FstTermIndex;
 using V21Calc  = Search.Variant2_1.LevenshteinBasic.LevenshteinCalculator;
 using V22Calc  = Search.Variant2_2.LevenshteinStack.LevenshteinStackCalculator;
 using V31Calc  = Search.Variant3_1.DamerauBasic.DamerauCalculator;
@@ -147,9 +148,26 @@ internal sealed class SearchOnlyAdapter
     // trigram-filter / DP-scoring split. We therefore bypass ScoreAndTopK and
     // delegate to FstTermIndex.Search, then unwrap to Guid order. Top-K
     // ranking + tie-break already happen inside the index.
-    public static SearchOnlyAdapter ForVariant4(V4Index index)
+    public static SearchOnlyAdapter ForVariant4_1(V41Index index)
     {
-        return new SearchOnlyAdapter("Variant4_FstAutomaton", (term, filter) =>
+        return new SearchOnlyAdapter("Variant4_1_FstAutomaton", (term, filter) =>
+        {
+            var normalised = term.Trim().ToLowerInvariant();
+            var scored = index.Search(normalised, filter, TopK);
+            if (scored.Count == 0) return Array.Empty<Guid>();
+            var ids = new Guid[scored.Count];
+            for (int i = 0; i < scored.Count; i++) ids[i] = scored[i].Id;
+            return ids;
+        });
+    }
+
+    // Variant 4.2 — same FST/automaton intersection but the per-query union is
+    // streamed lazily into a bounded top-K heap; eliminates the per-query
+    // Dictionary<int, byte> allocation that dominated Variant 4.1's slow-query
+    // wall-clock cost.
+    public static SearchOnlyAdapter ForVariant4_2(V42Index index)
+    {
+        return new SearchOnlyAdapter("Variant4_2_FstAutomatonLazy", (term, filter) =>
         {
             var normalised = term.Trim().ToLowerInvariant();
             var scored = index.Search(normalised, filter, TopK);
