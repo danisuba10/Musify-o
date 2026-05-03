@@ -68,10 +68,12 @@ if (variantFilter != "all")
                              Math.Max(oldIo,     desiredMin));
 }
 
-// Anchor results path to the exe directory so it always lands in
-// Search.Benchmarks/results/ regardless of the working directory.
-var resultsPath = Path.Combine(
-    AppContext.BaseDirectory, "results", "results.csv");
+// Anchor results to the project source directory (Search.Benchmarks/results/)
+// rather than the bin output, so results survive a `dotnet clean` and are
+// easy to find without navigating into bin/Release/net8.0/.
+// AppContext.BaseDirectory = bin/{Config}/net8.0/ → go up 3 levels.
+var projectDir  = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
+var resultsPath = Path.Combine(projectDir, "results", "results.csv");
 var writer = new ResultWriter(resultsPath);
 
 // ── Correctness validation ─────────────────────────────────────────────────
@@ -125,6 +127,12 @@ var entityCounts  = smoke ? new long[] { 10_000 }  : BenchmarkMatrix.EntityCount
 var concurrencies = smoke ? new int[]  { 100 }      : BenchmarkMatrix.Concurrencies;
 var duration      = smoke ? TimeSpan.FromSeconds(5) : BenchmarkMatrix.TestDuration;
 
+// Resume support: skip (variant, entityCount, concurrentUsers) combos that
+// already have a row in the CSV so an interrupted run can be continued.
+var completedKeys = writer.LoadCompletedKeys();
+bool AlreadyDone(string variantName, long ec, int users) =>
+    completedKeys.Contains($"{variantName}|{ec}|{users}");
+
 foreach (var entityCount in entityCounts)
 {
     Console.WriteLine($"\n=== Entity count: {entityCount:N0} ===");
@@ -155,6 +163,11 @@ foreach (var entityCount in entityCounts)
 
         foreach (var users in concurrencies)
         {
+            if (AlreadyDone(adapter.VariantName, entityCount, users))
+            {
+                Console.WriteLine($"  [SKIP] {adapter.VariantName} | {entityCount:N0} entities | {users:N0} users — already in CSV");
+                continue;
+            }
             Console.WriteLine($"  {adapter.VariantName} | {entityCount:N0} entities | {users:N0} users");
             var stats = LoadTestRunner.Run(adapter, entityCount, users, duration);
             writer.Append(entityCount, stats);

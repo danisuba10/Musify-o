@@ -32,6 +32,8 @@
     <ProjectReference Include="..\Search\Search.Variant3_1.DamerauBasic\Search.Variant3_1.DamerauBasic.csproj" />
     <ProjectReference Include="..\Search\Search.Variant3_2.DamerauStack\Search.Variant3_2.DamerauStack.csproj" />
     <ProjectReference Include="..\Search\Search.Variant3_3.DamerauBitmap\Search.Variant3_3.DamerauBitmap.csproj" />
+    <ProjectReference Include="..\Search\Search.Variant4_1.FstAutomaton\Search.Variant4_1.FstAutomaton.csproj" />
+    <ProjectReference Include="..\Search\Search.Variant4_2.FstAutomaton\Search.Variant4_2.FstAutomaton.csproj" />
   </ItemGroup>
 
 </Project>

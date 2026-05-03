@@ -30,3 +30,4 @@ API/sounds/*
 README_modifications.md
 SignalRTest/
 Search/Search.Benchmarks/reports/
+Search/Search.Benchmarks/BenchmarkDotNet.Artifacts/results/BenchmarkRun-20260429-111940-report.csv

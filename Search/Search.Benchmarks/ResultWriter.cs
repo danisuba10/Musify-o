@@ -91,6 +91,43 @@ internal sealed class ResultWriter : IDisposable
 
     public void Dispose() { }
 
+    /// <summary>
+    /// Reads the existing CSV and returns the set of already-completed keys so
+    /// the runner can skip them on a resumed run.
+    /// Key format: "VariantName|entityCount|concurrentUsers"
+    /// </summary>
+    public HashSet<string> LoadCompletedKeys()
+    {
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!File.Exists(_path) || new FileInfo(_path).Length == 0)
+            return keys;
+
+        try
+        {
+            using var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            using var csv    = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture));
+
+            csv.Read();
+            csv.ReadHeader();
+            while (csv.Read())
+            {
+                var variant = csv.GetField<string>("variant") ?? string.Empty;
+                var ec      = csv.GetField<long>("entity_count");
+                var cu      = csv.GetField<int>("concurrent_users");
+                if (ec > 0 && cu > 0)   // skip OOM sentinel rows
+                    keys.Add($"{variant}|{ec}|{cu}");
+            }
+        }
+        catch
+        {
+            // Corrupt or partially-written CSV — start fresh rather than crashing.
+            keys.Clear();
+        }
+
+        return keys;
+    }
+
     // ── CSV row shape ─────────────────────────────────────────────────────
     private sealed class CsvRow
     {

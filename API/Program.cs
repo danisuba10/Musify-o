@@ -19,6 +19,8 @@ using Search.Variant2_2.LevenshteinStack;
 using Search.Variant3_1.DamerauBasic;
 using Search.Variant3_2.DamerauStack;
 using Search.Variant3_3.DamerauBitmap;
+using Search.Variant4_1.FstAutomaton;
+using Search.Variant4_2.FstAutomaton;
 using Microsoft.EntityFrameworkCore.Design;
 using DotNetEnv;
 using Microsoft.OpenApi.Models;
@@ -248,7 +250,9 @@ builder.Services.AddAuthorization(options =>
 // builder.Services.AddVariant2_2_Search();
 // builder.Services.AddVariant3_1_Search();
 // builder.Services.AddVariant3_2_Search();
-builder.Services.AddVariant3_3_Search();           // Variant 3.3: Damerau-Levenshtein + Bitmaps
+// builder.Services.AddVariant3_3_Search();           // Variant 3.3: Damerau-Levenshtein + Bitmaps
+// builder.Services.AddVariant4_1_Search();        // Variant 4.1: FST + Levenshtein automaton (dictionary-based scoring)
+builder.Services.AddVariant4_2_Search();        // Variant 4.2: FST + Levenshtein automaton (lazy heap-push)
 // ============================================================
 
 var app = builder.Build();
