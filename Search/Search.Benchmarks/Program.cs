@@ -94,16 +94,21 @@ if (mode is "--load" or "--all")
 // ── BenchmarkDotNet latency benchmarks ─────────────────────────────────────
 if (mode is "--latency" or "--all")
 {
+    // Direct BDN artifacts into the same results/ folder as the NBomber CSV.
+    var bdnResultsDir = Path.GetDirectoryName(resultsPath)!;
+
     IConfig bdnConfig = smoke
         // Dry job, only EntityCount=10_000 — gives a quick cold-start number.
         // Note: [Params] values are stored as int in attributes, not long.
         ? ManualConfig.Create(DefaultConfig.Instance)
+            .WithArtifactsPath(bdnResultsDir)
             .AddJob(Job.Dry.WithId("Smoke"))
             .AddFilter(new SimpleFilter(bc =>
                 bc.Parameters.Items.Any(p =>
                     p.Name == "EntityCount" && Convert.ToInt64(p.Value) == 10_000L)))
         // Full job — all [Params] combinations, .NET 8.0 runtime.
         : ManualConfig.Create(DefaultConfig.Instance)
+            .WithArtifactsPath(bdnResultsDir)
             .AddJob(Job.Default.WithRuntime(CoreRuntime.Core80).WithId(".NET 8.0"));
 
     if (variantFilter != "all")

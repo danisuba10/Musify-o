@@ -43,8 +43,12 @@ internal sealed class ResultWriter : IDisposable
             Variant         = stats.VariantName,
             EntityCount     = entityCount,
             ConcurrentUsers = stats.ConcurrentUsers,
+            MinMs           = Math.Round(stats.MinMs, 3),
             MeanMs          = Math.Round(stats.MeanMs, 3),
+            StdDevMs        = Math.Round(stats.StdDevMs, 3),
+            MaxMs           = Math.Round(stats.MaxMs, 3),
             P50Ms           = Math.Round(stats.P50Ms, 3),
+            P75Ms           = Math.Round(stats.P75Ms, 3),
             P95Ms           = Math.Round(stats.P95Ms, 3),
             P99Ms           = Math.Round(stats.P99Ms, 3),
             Rps             = Math.Round(stats.RequestsPerSec, 1),
@@ -140,11 +144,23 @@ internal sealed class ResultWriter : IDisposable
         [CsvHelper.Configuration.Attributes.Name("concurrent_users")]
         public int ConcurrentUsers { get; set; }
 
+        [CsvHelper.Configuration.Attributes.Name("min_ms")]
+        public double MinMs { get; set; }
+
         [CsvHelper.Configuration.Attributes.Name("mean_ms")]
         public double MeanMs { get; set; }
 
+        [CsvHelper.Configuration.Attributes.Name("stddev_ms")]
+        public double StdDevMs { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Name("max_ms")]
+        public double MaxMs { get; set; }
+
         [CsvHelper.Configuration.Attributes.Name("p50_ms")]
         public double P50Ms { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Name("p75_ms")]
+        public double P75Ms { get; set; }
 
         [CsvHelper.Configuration.Attributes.Name("p95_ms")]
         public double P95Ms { get; set; }

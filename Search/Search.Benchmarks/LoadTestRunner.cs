@@ -44,8 +44,12 @@ internal static class LoadTestRunner
         {
             VariantName     = adapter.VariantName,
             ConcurrentUsers = concurrentUsers,
+            MinMs           = s.Ok.Latency.MinMs,
             MeanMs          = s.Ok.Latency.MeanMs,
+            StdDevMs        = s.Ok.Latency.StdDev,
+            MaxMs           = s.Ok.Latency.MaxMs,
             P50Ms           = s.Ok.Latency.Percent50,
+            P75Ms           = s.Ok.Latency.Percent75,
             P95Ms           = s.Ok.Latency.Percent95,
             P99Ms           = s.Ok.Latency.Percent99,
             RequestsPerSec  = s.Ok.Request.RPS,
