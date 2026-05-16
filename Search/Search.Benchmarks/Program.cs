@@ -119,6 +119,7 @@ if (mode is "--latency" or "--all")
             bc.Descriptor.WorkloadMethod.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)));
     }
 
+    LatencyBenchmarks.OomWriter = writer;
     BenchmarkRunner.Run<LatencyBenchmarks>(bdnConfig);
     if (mode is "--latency") return;
 }

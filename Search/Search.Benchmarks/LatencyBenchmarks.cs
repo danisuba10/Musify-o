@@ -20,6 +20,12 @@ namespace Search.Benchmarks;
 [HtmlExporter, CsvExporter]
 public class LatencyBenchmarks
 {
+    /// <summary>
+    /// Set by Program.cs before BenchmarkRunner.Run so OOM build failures
+    /// are written to the shared results CSV as SKIPPED_OOM sentinel rows.
+    /// </summary>
+    public static ResultWriter? OomWriter { get; set; }
+
     [Params(10_000, 100_000, 1_000_000, 10_000_000)]
     public long EntityCount { get; set; }
 
@@ -29,11 +35,25 @@ public class LatencyBenchmarks
 
     private SearchOnlyAdapter _adapter = null!;
     private string _query = null!;
+    private bool _oomSkipped;
 
     [GlobalSetup]
     public void Setup()
     {
-        _adapter = BuildAdapter(Variant, EntityCount);
+        try
+        {
+            _adapter = BuildAdapter(Variant, EntityCount);
+        }
+        catch (OutOfMemoryException)
+        {
+            _oomSkipped = true;
+            var label = $"{Variant}_LatencyBuildOOM_{EntityCount}";
+            Console.WriteLine($"[OOM-SKIPPED] {Variant} @ {EntityCount:N0} — index build ran out of memory, benchmark results will be marked N/A.");
+            OomWriter?.AppendOom(label);
+            ForceGc();
+            return;
+        }
+
         // Warm up the JIT — run 100 queries before measuring
         for (int i = 0; i < 100; i++)
             _adapter.ScoreOnly(QueryPool.GetRandom());
@@ -41,10 +61,18 @@ public class LatencyBenchmarks
     }
 
     [GlobalCleanup]
-    public void Cleanup() => ForceGc();
+    public void Cleanup()
+    {
+        _oomSkipped = false;
+        ForceGc();
+    }
 
     [Benchmark]
-    public System.Collections.Generic.IReadOnlyList<Guid> Search() => _adapter.ScoreOnly(_query);
+    public System.Collections.Generic.IReadOnlyList<Guid> Search()
+    {
+        if (_oomSkipped) return System.Array.Empty<Guid>(); // N/A — index build OOM'd
+        return _adapter.ScoreOnly(_query);
+    }
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
