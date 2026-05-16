@@ -6,6 +6,8 @@ using V22Index = Search.Variant2_2.LevenshteinStack.TrigramIndex;
 using V31Index = Search.Variant3_1.DamerauBasic.TrigramIndex;
 using V32Index = Search.Variant3_2.DamerauStack.TrigramIndex;
 using V33Index = Search.Variant3_3.DamerauBitmap.RoaringBitmapTrigramIndex;
+using V41Index = Search.Variant4_1.FstAutomaton.FstTermIndex;
+using V42Index = Search.Variant4_2.FstAutomaton.FstTermIndex;
 
 namespace Search.Benchmarks;
 
@@ -22,7 +24,7 @@ public class LatencyBenchmarks
     public long EntityCount { get; set; }
 
     // One param per variant — BenchmarkDotNet runs all (EntityCount × Variant) combinations.
-    [Params("Variant2_1", "Variant2_2", "Variant3_1", "Variant3_2", "Variant3_3")]
+    [Params("Variant2_1", "Variant2_2", "Variant3_1", "Variant3_2", "Variant3_3", "Variant4_1", "Variant4_2")]
     public string Variant { get; set; } = null!;
 
     private SearchOnlyAdapter _adapter = null!;
@@ -74,6 +76,16 @@ public class LatencyBenchmarks
         {
             var idx = new V33Index(); idx.Build(data);
             return SearchOnlyAdapter.ForVariant3_3(idx);
+        }
+        if (variant == "Variant4_1")
+        {
+            var idx = new V41Index(); idx.Build(data);
+            return SearchOnlyAdapter.ForVariant4_1(idx);
+        }
+        if (variant == "Variant4_2")
+        {
+            var idx = new V42Index(); idx.Build(data);
+            return SearchOnlyAdapter.ForVariant4_2(idx);
         }
         throw new ArgumentException($"Unknown variant: {variant}");
     }
