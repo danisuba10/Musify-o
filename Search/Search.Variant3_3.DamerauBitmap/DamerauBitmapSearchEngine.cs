@@ -49,7 +49,7 @@ internal sealed class DamerauBitmapSearchEngine : ISearchEngine
         var normalised = (query.Term ?? string.Empty).Trim().ToLowerInvariant();
         var cacheKey   = $"{normalised}:{query.EntityFilter}";
 
-        if (!_cache.TryGetValue(cacheKey, out List<Guid>? snapshot))
+        if (!_cache.TryGetValue(cacheKey, out List<(Guid Id, double Score)>? snapshot))
         {
             // Use the optimised filter+score path: pooled byte[] candidate counter,
             // pre-lowered names, single read-lock acquisition. Same hot path as
@@ -103,8 +103,8 @@ internal sealed class DamerauBitmapSearchEngine : ISearchEngine
                 int c = b.Score.CompareTo(a.Score);
                 return c != 0 ? c : b.Id.CompareTo(a.Id);
             });
-            snapshot = new List<Guid>(ordered.Length);
-            foreach (var item in ordered) snapshot.Add(item.Id);
+            snapshot = new List<(Guid Id, double Score)>(ordered.Length);
+            foreach (var item in ordered) snapshot.Add(item);
 
             _cache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
             {
@@ -114,14 +114,10 @@ internal sealed class DamerauBitmapSearchEngine : ISearchEngine
         }
 
         int totalScoredCount = snapshot!.Count;
-        var pageIds = snapshot
-            .Skip(query.Skip)
-            .Take(query.PageSize)
-            .ToList();
 
-        var scoreMap = pageIds
-            .Select((id, i) => (id, score: 1.0 / (1.0 + i)))
-            .ToDictionary(x => x.id, x => x.score);
+        var page = snapshot.Skip(query.Skip).Take(query.PageSize).ToList();
+        var pageIds = page.Select(x => x.Id).ToList();
+        var scoreMap = page.ToDictionary(x => x.Id, x => x.Score);
 
         var hits = await FetchHitsFromDb(pageIds, scoreMap, ct);
 
