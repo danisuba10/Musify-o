@@ -41,6 +41,7 @@ using Lucene.Net.Util;
 using Lucene.Net.Util.Automaton;
 using Lucene.Net.Util.Fst;
 using Search.Abstractions;
+using System.Numerics;
 using System.Globalization;
 using System.Text;
 using FstOutput = J2N.Numerics.Int64;
@@ -240,65 +241,200 @@ internal sealed class FstTermIndex
         _lock.EnterReadLock();
         try
         {
+            var queryTokens = new List<string>(4);
+            var uniqueTokens = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var tok in TokeniseQuery(normalisedQuery))
+            {
+                if (uniqueTokens.Add(tok))
+                    queryTokens.Add(tok);
+            }
+            if (queryTokens.Count == 0) return new List<(Guid, double)>();
+
+            bool multiToken = queryTokens.Count > 1;
+
             // Pre-compute per-token kMax and the (lazy) Levenshtein automaton.
             // Building the automaton once per token (rather than per (token,k)
             // pass) is cheap because LevenshteinAutomata caches its parametric
             // construction across ToAutomaton(k) calls.
-            var tokens = new List<(string Token, int KMax, LevenshteinAutomata? La)>(4);
+            var tokens = new List<(string Token, int KMax, LevenshteinAutomata? La)>(queryTokens.Count);
             int maxK = 0;
-            foreach (var tok in TokeniseQuery(normalisedQuery))
+            foreach (var tok in queryTokens)
             {
-                int kMax = ChooseK(tok.Length);
+                int kMax = ChooseK(tok.Length, multiToken);
                 tokens.Add((tok, kMax,
                     kMax > 0 ? new LevenshteinAutomata(tok, withTranspositions: true) : null));
                 if (kMax > maxK) maxK = kMax;
             }
-            if (tokens.Count == 0) return new List<(Guid, double)>();
 
-            // Bounded top-K min-heap of (entitySlot, score). The lowest score
-            // sits at the root, so EnqueueDequeue evicts it when a higher
-            // scoring candidate arrives. The HashSet de-duplicates entity
-            // slots across (token, k) passes — first encounter wins, which
-            // is correct because the outer loop walks k in increasing order.
-            var heap = new PriorityQueue<int, double>(topK);
-            var seen = new HashSet<int>(capacity: 256);
+            // For multi-token queries we enforce token coverage before admission
+            // to avoid single common tokens (e.g. "taylor") flooding top-K.
+            // If strict coverage yields no candidates, we relax once (to 1 token)
+            // so typo-heavy inputs still return useful results.
+            bool useCoverage = multiToken && tokens.Count <= 64;
 
-            for (int k = 0; k <= maxK; k++)
+            PriorityQueue<int, double> heap;
+
+            if (!useCoverage)
             {
-                double scoreAtK = 1.0 / (1.0 + k) + (k == 0 ? 0.5 : 0.0);
+                heap = new PriorityQueue<int, double>(topK);
+                var seen = new HashSet<int>(capacity: 256);
 
-                foreach (var (token, kMax, la) in tokens)
+                for (int k = 0; k <= maxK; k++)
                 {
-                    if (k > kMax) continue;
+                    double scoreAtK = 1.0 / (1.0 + k) + (k == 0 ? 0.5 : 0.0);
 
-                    if (k == 0)
+                    for (int tokenIdx = 0; tokenIdx < tokens.Count; tokenIdx++)
                     {
-                        long? exact = TryGetExact(token);
-                        if (exact.HasValue)
-                            AdmitPosting(_postings[(int)exact.Value], scoreAtK, filter, seen, heap, topK);
+                        var (token, kMax, la) = tokens[tokenIdx];
+                        if (k > kMax) continue;
+
+                        if (k == 0)
+                        {
+                            long? exact = TryGetExact(token);
+                            if (exact.HasValue)
+                                AdmitPosting(_postings[(int)exact.Value], scoreAtK, filter, seen, heap, topK);
+                        }
+                        else
+                        {
+                            var auto = la!.ToAutomaton(k);
+                            if (auto is null) continue;
+                            var ra = new CharacterRunAutomaton(auto);
+
+                            var matchedIds = new List<int>(64);
+                            IntersectFstAutomaton(ra, matchedIds);
+                            foreach (int termId in matchedIds)
+                                AdmitPosting(_postings[termId], scoreAtK, filter, seen, heap, topK);
+                        }
                     }
-                    else
-                    {
-                        var auto = la!.ToAutomaton(k);
-                        if (auto is null) continue;
-                        var ra = new CharacterRunAutomaton(auto);
 
-                        var matchedIds = new List<int>(64);
-                        IntersectFstAutomaton(ra, matchedIds);
-                        foreach (int termId in matchedIds)
-                            AdmitPosting(_postings[termId], scoreAtK, filter, seen, heap, topK);
+                    // Score-bounded early termination. Once the heap is full,
+                    // every future admission would carry score 1/(1+(k+1)) < the
+                    // worst kept score, so it could never displace anything.
+                    if (heap.Count >= topK && k < maxK)
+                    {
+                        int nextK = k + 1;
+                        double bestNext = 1.0 / (1.0 + nextK); // no exact-match bonus for k>=1
+                        if (heap.TryPeek(out _, out double minScore) && minScore >= bestNext)
+                            break;
                     }
                 }
+            }
+            else
+            {
+                int requiredTokenMatches = ChooseRequiredTokenMatches(tokens.Count);
+                int requiredThisPass = requiredTokenMatches;
+                var qualifiedScores = new Dictionary<int, double>(capacity: 256);
+                Dictionary<int, byte>? finalFirstDistByIdx = null;
+                Dictionary<int, ulong>? finalTokenMaskByIdx = null;
 
-                // Score-bounded early termination. Once the heap is full,
-                // every future admission would carry score 1/(1+(k+1)) < the
-                // worst kept score, so it could never displace anything.
-                if (heap.Count >= topK && k < maxK)
+                while (true)
                 {
-                    int nextK = k + 1;
-                    double bestNext = 1.0 / (1.0 + nextK); // no exact-match bonus for k>=1
-                    if (heap.TryPeek(out _, out double minScore) && minScore >= bestNext)
+                    var firstDistByIdx = new Dictionary<int, byte>(capacity: 256);
+                    var tokenMaskByIdx = new Dictionary<int, ulong>(capacity: 256);
+                    qualifiedScores.Clear();
+
+                    for (int k = 0; k <= maxK; k++)
+                    {
+                        for (int tokenIdx = 0; tokenIdx < tokens.Count; tokenIdx++)
+                        {
+                            var (token, kMax, la) = tokens[tokenIdx];
+                            if (k > kMax) continue;
+
+                            if (k == 0)
+                            {
+                                long? exact = TryGetExact(token);
+                                if (exact.HasValue)
+                                {
+                                    AdmitPostingWithCoverage(
+                                        _postings[(int)exact.Value],
+                                        (byte)k,
+                                        1UL << tokenIdx,
+                                        filter,
+                                        requiredThisPass,
+                                        tokens.Count,
+                                        firstDistByIdx,
+                                        tokenMaskByIdx,
+                                        qualifiedScores);
+                                }
+                            }
+                            else
+                            {
+                                var auto = la!.ToAutomaton(k);
+                                if (auto is null) continue;
+                                var ra = new CharacterRunAutomaton(auto);
+
+                                var matchedIds = new List<int>(64);
+                                int expansionCap = ChooseExpansionCapForCoverage(token.Length, k);
+                                IntersectFstAutomaton(ra, matchedIds, expansionCap);
+                                foreach (int termId in matchedIds)
+                                {
+                                    AdmitPostingWithCoverage(
+                                        _postings[termId],
+                                        (byte)k,
+                                        1UL << tokenIdx,
+                                        filter,
+                                        requiredThisPass,
+                                        tokens.Count,
+                                        firstDistByIdx,
+                                        tokenMaskByIdx,
+                                        qualifiedScores);
+                                }
+                            }
+                        }
+                    }
+
+                    finalFirstDistByIdx = firstDistByIdx;
+                    finalTokenMaskByIdx = tokenMaskByIdx;
+
+                    if (qualifiedScores.Count > 0 || requiredThisPass <= 1)
                         break;
+
+                    requiredThisPass = 1;
+                }
+
+                // If strict token coverage produced no matches and we had to
+                // relax to single-token admission, recover precision by trying
+                // a cheap name-token approximation for still-missing tokens.
+                if (requiredTokenMatches > 1 && requiredThisPass == 1 &&
+                    qualifiedScores.Count > 0 &&
+                    finalFirstDistByIdx is not null &&
+                    finalTokenMaskByIdx is not null)
+                {
+                    var rescuedScores = new Dictionary<int, double>(capacity: 64);
+                    foreach (var kv in qualifiedScores)
+                    {
+                        int idx = kv.Key;
+                        if (!finalTokenMaskByIdx.TryGetValue(idx, out ulong mask))
+                            continue;
+
+                        for (int tokenIdx = 0; tokenIdx < tokens.Count; tokenIdx++)
+                        {
+                            ulong bit = 1UL << tokenIdx;
+                            if ((mask & bit) != 0) continue;
+
+                            var (token, kMax, _) = tokens[tokenIdx];
+                            if (NameContainsApproxToken(_nameLowers[idx], token, kMax))
+                                mask |= bit;
+                        }
+
+                        int matchedTokenCount = BitOperations.PopCount(mask);
+                        if (matchedTokenCount < requiredTokenMatches) continue;
+                        if (!finalFirstDistByIdx.TryGetValue(idx, out byte firstDistance)) continue;
+
+                        double baseScore = 1.0 / (1.0 + firstDistance) + (firstDistance == 0 ? 0.5 : 0.0);
+                        double coverageBoost = tokens.Count <= 1 ? 0.0 : 0.2 * (matchedTokenCount - 1);
+                        rescuedScores[idx] = baseScore + coverageBoost;
+                    }
+
+                    if (rescuedScores.Count > 0)
+                        qualifiedScores = rescuedScores;
+                }
+
+                heap = new PriorityQueue<int, double>(topK);
+                foreach (var kv in qualifiedScores)
+                {
+                    if (heap.Count < topK) heap.Enqueue(kv.Key, kv.Value);
+                    else heap.EnqueueDequeue(kv.Key, kv.Value);
                 }
             }
 
@@ -323,6 +459,74 @@ internal sealed class FstTermIndex
             return result;
         }
         finally { _lock.ExitReadLock(); }
+    }
+
+    private void AdmitPostingWithCoverage(
+        RoaringBitmap posting,
+        byte distance,
+        ulong tokenMask,
+        SearchEntityType filter,
+        int requiredTokenMatches,
+        int totalTokenCount,
+        Dictionary<int, byte> firstDistByIdx,
+        Dictionary<int, ulong> tokenMaskByIdx,
+        Dictionary<int, double> qualifiedScores)
+    {
+        foreach (int idx in posting)
+        {
+            if (_tombstones.Contains(idx)) continue;
+            if (filter != SearchEntityType.All)
+            {
+                var ent = _entries[idx];
+                if (ent.EntityType != filter) continue;
+            }
+
+            if (!firstDistByIdx.ContainsKey(idx))
+                firstDistByIdx[idx] = distance;
+
+            tokenMaskByIdx.TryGetValue(idx, out ulong currentMask);
+            ulong mergedMask = currentMask | tokenMask;
+            if (mergedMask == currentMask) continue;
+            tokenMaskByIdx[idx] = mergedMask;
+
+            int matchedTokenCount = BitOperations.PopCount(mergedMask);
+            if (matchedTokenCount < requiredTokenMatches) continue;
+
+            byte firstDistance = firstDistByIdx[idx];
+            double baseScore = 1.0 / (1.0 + firstDistance) + (firstDistance == 0 ? 0.5 : 0.0);
+            double coverageBoost = totalTokenCount <= 1 ? 0.0 : 0.2 * (matchedTokenCount - 1);
+            double score = baseScore + coverageBoost;
+
+            if (!qualifiedScores.TryGetValue(idx, out double currentScore) || score > currentScore)
+                qualifiedScores[idx] = score;
+        }
+    }
+
+    private static bool NameContainsApproxToken(string nameLower, string token, int kMax)
+    {
+        foreach (var nameToken in nameLower.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (nameToken.Equals(token, StringComparison.Ordinal))
+                return true;
+
+            // Rescue path for ultra-short typo tokens where fuzzy expansion
+            // can be over-pruned by expansion limits (e.g. "sft" -> "swift").
+            if (kMax >= 1 && token.Length <= 3 && IsSubsequence(token, nameToken))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsSubsequence(string pattern, string text)
+    {
+        if (pattern.Length == 0) return true;
+        if (text.Length == 0 || pattern.Length > text.Length) return false;
+
+        int p = 0;
+        for (int i = 0; i < text.Length && p < pattern.Length; i++)
+            if (text[i] == pattern[p]) p++;
+        return p == pattern.Length;
     }
 
     /// <summary>
@@ -360,14 +564,21 @@ internal sealed class FstTermIndex
     // the RunAutomaton's current state. Emits the termId encoded as the sum
     // of arc outputs along the path (PositiveInt32Outputs.Add is integer add).
 
-    private void IntersectFstAutomaton(CharacterRunAutomaton ra, List<int> matchedIds)
+    private static int ChooseExpansionCapForCoverage(int tokenLength, int distance)
+    {
+        if (tokenLength <= 3 && distance >= 1) return 20_000;
+        if (tokenLength <= 4 && distance >= 2) return 4_000;
+        return MAX_EXPANSIONS_PER_PASS;
+    }
+
+    private void IntersectFstAutomaton(CharacterRunAutomaton ra, List<int> matchedIds, int maxExpansions = MAX_EXPANSIONS_PER_PASS)
     {
         if (_fst is null) return;
         var br      = _fst.GetBytesReader();
         var outputs = PositiveInt32Outputs.Singleton;
         var rootArc = _fst.GetFirstArc(new FST.Arc<FstOutput>());
 
-        WalkArc(rootArc, ra.InitialState, outputs.NoOutput, ra, br, outputs, matchedIds);
+        WalkArc(rootArc, ra.InitialState, outputs.NoOutput, ra, br, outputs, matchedIds, maxExpansions);
     }
 
     private void WalkArc(
@@ -377,14 +588,15 @@ internal sealed class FstTermIndex
         CharacterRunAutomaton ra,
         FST.BytesReader br,
         PositiveInt32Outputs outputs,
-        List<int> matchedIds)
+        List<int> matchedIds,
+        int maxExpansions)
     {
         if (_fst is null) return;
         // Lucene-style maxExpansions cap: stop the DFS once we've accumulated
         // enough candidate terms. Subsequent matches at this k would only
         // displace already-collected matches at the top-K stage in pathological
         // proportion to wall-clock cost.
-        if (matchedIds.Count >= MAX_EXPANSIONS_PER_PASS) return;
+        if (matchedIds.Count >= maxExpansions) return;
 
         if (!FST<FstOutput>.TargetHasArcs(followArc))
         {
@@ -400,7 +612,7 @@ internal sealed class FstTermIndex
         _fst.ReadFirstTargetArc(followArc, arc, br);
         while (true)
         {
-            if (matchedIds.Count >= MAX_EXPANSIONS_PER_PASS) return;
+            if (matchedIds.Count >= maxExpansions) return;
 
             int label = arc.Label;
             if (label != FST.END_LABEL)
@@ -410,7 +622,7 @@ internal sealed class FstTermIndex
                 {
                     var nextOut = outputs.Add(outputAccum, arc.Output);
                     var snap = new FST.Arc<FstOutput>().CopyFrom(arc);
-                    WalkArc(snap, nextState, nextOut, ra, br, outputs, matchedIds);
+                    WalkArc(snap, nextState, nextOut, ra, br, outputs, matchedIds, maxExpansions);
                 }
             }
             if (arc.IsLast) break;
@@ -439,12 +651,35 @@ internal sealed class FstTermIndex
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private static int ChooseK(int len) => len switch
+    private static int ChooseK(int len, bool multiToken)
     {
-        <= 3 => 0,
-        <= 6 => 1,
-        _    => 2,
-    };
+        if (!multiToken)
+        {
+            return len switch
+            {
+                <= 3 => 0,
+                <= 6 => 1,
+                _    => 2,
+            };
+        }
+
+        return len switch
+        {
+            <= 2 => 0,
+            <= 3 => 1,
+            <= 6 => 1,
+            _    => 2,
+        };
+    }
+
+    private static int ChooseRequiredTokenMatches(int tokenCount)
+    {
+        if (tokenCount <= 1) return 1;
+        if (tokenCount == 2) return 2;
+
+        int sixtyPercent = (int)Math.Ceiling(tokenCount * 0.6);
+        return Math.Min(tokenCount, Math.Max(2, sixtyPercent));
+    }
 
     private static IEnumerable<string> TokeniseQuery(string normalised)
     {
