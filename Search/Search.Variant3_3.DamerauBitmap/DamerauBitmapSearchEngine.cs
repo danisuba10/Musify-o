@@ -51,72 +51,7 @@ internal sealed class DamerauBitmapSearchEngine : ISearchEngine
 
         if (!_cache.TryGetValue(cacheKey, out List<(Guid Id, double Score)>? snapshot))
         {
-            // Use the optimised filter+score path: pooled byte[] candidate counter,
-            // pre-lowered names, single read-lock acquisition. Same hot path as
-            // the benchmark adapter so production matches the measured numbers.
-            var candidates = _index.GetFilteredCandidates(normalised, query.EntityFilter);
-            bool multiWord = normalised.Contains(' ');
-            int  maxDist   = multiWord ? MAX_EDIT_DISTANCE : Math.Min(3, normalised.Length / 2);
-            int  qLen      = normalised.Length;
-
-            // Bounded top-K min-heap keyed by score (smallest = root, evicted on push).
-            var heap = new PriorityQueue<Guid, double>(MAX_SCORED_RESULTS);
-
-            foreach (var (id, nameLower) in candidates)
-            {
-                int dist;
-                if (multiWord)
-                {
-                    if (Math.Abs(nameLower.Length - qLen) > maxDist) continue;
-                    dist = DamerauStackCalculator.Compute(
-                        normalised.AsSpan(), nameLower.AsSpan(), maxDist);
-                }
-                else
-                {
-                    dist = int.MaxValue;
-                    ReadOnlySpan<char> nameSpan = nameLower.AsSpan();
-
-                    while(!nameSpan.IsEmpty)
-                    {
-                        int tokenLen = nameSpan.IndexOf(' ');
-                        int spaceIdx = nameSpan.IndexOf(' ');
-                        ReadOnlySpan<char> token = spaceIdx == -1 ? nameSpan : nameSpan.Slice(0, spaceIdx);
-
-                        if (Math.Abs(token.Length - qLen) <= maxDist)
-                        {
-                            int d = DamerauStackCalculator.Compute(normalised.AsSpan(), token, maxDist);
-                            if (d < dist) { dist = d; if (dist == 0) break; }
-                        }
-
-                        if (spaceIdx == -1) break;
-                        nameSpan = nameSpan.Slice(spaceIdx + 1);
-                    }
-
-                    if (dist == int.MaxValue) continue;
-                }
-
-                if (dist > maxDist) continue;
-
-                double score = 1.0 / (1.0 + dist) + (dist == 0 ? EXACT_BONUS : 0);
-                if (heap.Count < MAX_SCORED_RESULTS) heap.Enqueue(id, score);
-                else                                 heap.EnqueueDequeue(id, score);
-            }
-
-            // Drain heap, then deterministic tie-break (PriorityQueue is unstable).
-            var ordered = new (Guid Id, double Score)[heap.Count];
-            for (int i = ordered.Length - 1; i >= 0; i--)
-            {
-                heap.TryDequeue(out var oid, out var osc);
-                ordered[i] = (oid, osc);
-            }
-            Array.Sort(ordered, (a, b) =>
-            {
-                int c = b.Score.CompareTo(a.Score);
-                return c != 0 ? c : b.Id.CompareTo(a.Id);
-            });
-            snapshot = new List<(Guid Id, double Score)>(ordered.Length);
-            foreach (var item in ordered) snapshot.Add(item);
-
+            snapshot = CalculateRankedSnapshot(normalised, query.EntityFilter);
             _cache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
             {
                 SlidingExpiration = TimeSpan.FromSeconds(60),
@@ -143,6 +78,76 @@ internal sealed class DamerauBitmapSearchEngine : ISearchEngine
             ElapsedMs           = sw.Elapsed.TotalMilliseconds,
             CandidatesEvaluated = totalScoredCount
         };
+    }
+
+    // Isolate the Span logic in a synchronous method to satisfy C# 12
+    private List<(Guid Id, double Score)> CalculateRankedSnapshot(string normalised, SearchEntityType entityFilter)
+    {
+        // Use the optimised filter+score path: pooled byte[] candidate counter,
+        // pre-lowered names, single read-lock acquisition. Same hot path as
+    // the benchmark adapter so production matches the measured numbers.
+        var candidates = _index.GetFilteredCandidates(normalised, entityFilter);
+        bool multiWord = normalised.Contains(' ');
+        int  maxDist   = multiWord ? MAX_EDIT_DISTANCE : Math.Min(3, normalised.Length / 2);
+        int  qLen      = normalised.Length;
+
+        var heap = new PriorityQueue<Guid, double>(MAX_SCORED_RESULTS);
+
+        foreach (var (id, nameLower) in candidates)
+        {
+            int dist;
+            if (multiWord)
+            {
+                if (Math.Abs(nameLower.Length - qLen) > maxDist) continue;
+                dist = DamerauStackCalculator.Compute(
+                    normalised.AsSpan(), nameLower.AsSpan(), maxDist);
+            }
+            else
+            {
+                dist = int.MaxValue;
+                ReadOnlySpan<char> nameSpan = nameLower.AsSpan();
+
+                while(!nameSpan.IsEmpty)
+                {
+                    int spaceIdx = nameSpan.IndexOf(' ');
+                    ReadOnlySpan<char> token = spaceIdx == -1 ? nameSpan : nameSpan.Slice(0, spaceIdx);
+
+                    if (Math.Abs(token.Length - qLen) <= maxDist)
+                    {
+                        int d = DamerauStackCalculator.Compute(normalised.AsSpan(), token, maxDist);
+                        if (d < dist) { dist = d; if (dist == 0) break; }
+                    }
+
+                    if (spaceIdx == -1) break;
+                    nameSpan = nameSpan.Slice(spaceIdx + 1);
+                }
+
+                if (dist == int.MaxValue) continue;
+            }
+
+            if (dist > maxDist) continue;
+
+            double score = 1.0 / (1.0 + dist) + (dist == 0 ? EXACT_BONUS : 0);
+            if (heap.Count < MAX_SCORED_RESULTS) heap.Enqueue(id, score);
+            else                                 heap.EnqueueDequeue(id, score);
+        }
+
+        var ordered = new (Guid Id, double Score)[heap.Count];
+        for (int i = ordered.Length - 1; i >= 0; i--)
+        {
+            heap.TryDequeue(out var oid, out var osc);
+            ordered[i] = (oid, osc);
+        }
+        Array.Sort(ordered, (a, b) =>
+        {
+            int c = b.Score.CompareTo(a.Score);
+            return c != 0 ? c : b.Id.CompareTo(a.Id);
+        });
+
+        var snapshot = new List<(Guid Id, double Score)>(ordered.Length);
+        foreach (var item in ordered) snapshot.Add(item);
+
+        return snapshot;
     }
 
     private async Task<List<SearchHit>> FetchHitsFromDb(
