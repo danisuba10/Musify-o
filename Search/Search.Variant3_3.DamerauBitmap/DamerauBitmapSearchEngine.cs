@@ -74,13 +74,24 @@ internal sealed class DamerauBitmapSearchEngine : ISearchEngine
                 else
                 {
                     dist = int.MaxValue;
-                    foreach (var token in nameLower.Split(' '))
+                    ReadOnlySpan<char> nameSpan = nameLower.AsSpan();
+
+                    while(!nameSpan.IsEmpty)
                     {
-                        if (Math.Abs(token.Length - qLen) > maxDist) continue;
-                        int d = DamerauStackCalculator.Compute(
-                            normalised.AsSpan(), token.AsSpan(), maxDist);
-                        if (d < dist) { dist = d; if (dist == 0) break; }
+                        int tokenLen = nameSpan.IndexOf(' ');
+                        int spaceIdx = nameSpan.IndexOf(' ');
+                        ReadOnlySpan<char> token = spaceIdx == -1 ? nameSpan : nameSpan.Slice(0, spaceIdx);
+
+                        if (Math.Abs(token.Length - qLen) <= maxDist)
+                        {
+                            int d = DamerauStackCalculator.Compute(normalised.AsSpan(), token, maxDist);
+                            if (d < dist) { dist = d; if (dist == 0) break; }
+                        }
+
+                        if (spaceIdx == -1) break;
+                        nameSpan = nameSpan.Slice(spaceIdx + 1);
                     }
+
                     if (dist == int.MaxValue) continue;
                 }
 
