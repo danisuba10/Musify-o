@@ -1,13 +1,20 @@
 // Search.Variant4_2.FstAutomaton/FstTermIndex.cs
 //
-// Variant 4.2 — FST + Levenshtein automaton with **lazy heap-push** scoring.
-// Differs from Variant 4.1 only in the query path: the per-query
-// Dictionary<int, byte> minDist + drain phase is removed. Entity slots from
-// matching posting lists are streamed directly into a bounded top-K min-heap
-// in increasing-k order, deduplicated by a HashSet<int>. Once the heap is
-// full and the next-k best-possible score is below the heap minimum, the
-// outer enumeration stops (MaxScore-style score bound; Tonellotto, Macdonald
-// & Ounis, 2018, "Efficient Query Processing for Scalable Web Search").
+// Variant 4.2 — FST + Levenshtein automaton with lazy top-K admission.
+//
+// Current query path has two modes:
+//   1) Baseline lazy heap-push (single-token / fallback mode): posting lists
+//      are streamed into a bounded top-K min-heap, deduplicated by HashSet<int>.
+//      A MaxScore-style bound can terminate remaining k-passes early once the
+//      heap is saturated and future best-possible scores cannot displace it.
+//   2) Multi-token coverage mode: candidates are qualified only after matching
+//      a minimum number of distinct query tokens. If strict coverage is empty,
+//      one relaxed pass is allowed, followed by a short-token rescue check
+//      (subsequence heuristic) to recover typo cases such as "sft" -> "swift".
+//
+// This implementation therefore no longer models Variant 4.2 as only "remove
+// minDist + add MaxScore"; it additionally applies token-coverage gating and
+// adaptive fallback/rescue logic for multi-token typo robustness.
 //
 // Build pipeline and FST/posting layout are identical to Variant 4.1.
 //
@@ -21,15 +28,16 @@
 //      indices (positions inside _entries) whose name contains the term.
 //
 // Pipeline (query):
-//   1. Normalise + tokenise the query.
-//   2. For each query token decide an effective edit distance k (0/1/2 by
-//      length, capped at the Lucene-supported maximum of 2).
-//   3. Build a Levenshtein automaton for the token at distance k and
-//      intersect it with the FST via a recursive Arc traversal (DFS that
-//      prunes any arc the automaton rejects). This yields matched termIds
-//      and the edit distance at which they were accepted.
-//   4. Union the posting lists, tracking the minimum edit distance per
-//      entity, then apply tombstone + entity-type filters.
+//   1. Normalise + tokenise (deduplicated query tokens).
+//   2. For each token choose kMax (0/1/2) from token length and query shape.
+//   3. For k = 0..maxK, intersect FST with Levenshtein automata and stream
+//      matched postings into either:
+//         - direct heap admission (baseline mode), or
+//         - coverage qualification state (multi-token mode).
+//   4. In coverage mode, require a minimum token-match count; if strict mode
+//      is empty, relax once and optionally rescue short-token typo cases with
+//      a subsequence heuristic before final top-K admission.
+//   5. Apply tombstone + entity-type filters and return deterministic score order.
 //
 // Memory footprint at 10 M entities is dominated by:
 //   - the FST (compact byte array), and
@@ -213,22 +221,13 @@ internal sealed class FstTermIndex
     /// where minDist is the smallest edit distance at which the entity was
     /// first admitted to the candidate heap.
     ///
-    /// Variant 4.2 — Lazy heap-push (score-bounded enumeration):
-    /// the per-query <c>Dictionary&lt;int,byte&gt; minDist</c> + drain phase
-    /// of Variant 4.1 is removed. Entity slots are streamed directly from
-    /// posting lists into a bounded top-K min-heap. The outer enumeration
-    /// loop iterates edit distance k = 0..maxK, so the first time an entity
-    /// is admitted (tracked via a <see cref="HashSet{Int32}"/>) corresponds
-    /// to its globally minimum k across all query tokens — preserving the
-    /// scoring semantics of Variant 4.1 without the dictionary allocation
-    /// or second pass. After completing each k level we test whether
-    /// <c>1/(1+(k+1))</c> (the best score any future, larger-k match could
-    /// receive) is below the heap's current minimum; if so, no future
-    /// admission can displace an already-kept entry and the entire
-    /// enumeration terminates. This mirrors the MaxScore-style score bound
-    /// used by modern top-k retrieval engines (Tonellotto, Macdonald &amp;
-    /// Ounis, 2018, "Efficient Query Processing for Scalable Web Search",
-    /// Foundations and Trends in Information Retrieval, 12(4–5)).
+    /// Variant 4.2 query evaluation:
+    /// single-token queries use lazy heap-push with HashSet-based dedup and
+    /// optional MaxScore-style early termination; multi-token queries use
+    /// token-coverage qualification (strict then relaxed fallback) plus a
+    /// short-token rescue check in the relaxed path. Scores remain compatible
+    /// with the family baseline, with an additional small coverage boost in
+    /// coverage mode to prefer candidates matching more query tokens.
     /// </summary>
     public List<(Guid Id, double Score)> Search(
         string normalisedQuery,
