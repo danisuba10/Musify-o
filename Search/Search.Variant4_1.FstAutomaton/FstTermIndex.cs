@@ -15,15 +15,14 @@
 //      indices (positions inside _entries) whose name contains the term.
 //
 // Pipeline (query):
-//   1. Normalise + tokenise the query.
-//   2. For each query token decide an effective edit distance k (0/1/2 by
-//      length, capped at the Lucene-supported maximum of 2).
-//   3. Build a Levenshtein automaton for the token at distance k and
-//      intersect it with the FST via a recursive Arc traversal (DFS that
-//      prunes any arc the automaton rejects). This yields matched termIds
-//      and the edit distance at which they were accepted.
-//   4. Union the posting lists, tracking the minimum edit distance per
-//      entity, then apply tombstone + entity-type filters.
+//   1. Normalise + tokenise (deduplicated query tokens).
+//   2. For each token decide kMax (0/1/2 by length and query shape).
+//   3. Intersect FST with Levenshtein automata and accumulate per-entity
+//      minimum distance (and token coverage mask for multi-token queries).
+//   4. Multi-token queries apply strict token-coverage gating; if strict
+//      coverage yields no candidates, a relaxed pass is allowed and refined
+//      by a short-token rescue check (subsequence heuristic).
+//   5. Score + bounded top-K heap; apply tombstone and entity-type filters.
 //
 // Memory footprint at 10 M entities is dominated by:
 //   - the FST (compact byte array), and
@@ -206,8 +205,8 @@ internal sealed class FstTermIndex
     /// the search-variant family: <c>1/(1+minDist) + (minDist==0 ? 0.5 : 0)</c>
     /// where minDist is the smallest edit distance over all matched terms
     /// for the entity. For multi-token queries, candidates are additionally
-    /// filtered by token coverage (strict first, then relaxed fallback), so
-    /// one common token cannot flood the result set.
+    /// filtered by token coverage (strict first, then relaxed fallback with
+    /// short-token rescue), so one common token cannot flood the result set.
     /// </summary>
     public List<(Guid Id, double Score)> Search(
         string normalisedQuery,

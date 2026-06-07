@@ -2,7 +2,8 @@
 //
 // Variant 4.2 — FST + Levenshtein automaton with lazy top-K admission.
 //
-// Current query path has two modes:
+// Current query path has two modes. Multi-token qualification semantics are
+// inherited from current Variant 4.1 and extended with lazy baseline handling:
 //   1) Baseline lazy heap-push (single-token / fallback mode): posting lists
 //      are streamed into a bounded top-K min-heap, deduplicated by HashSet<int>.
 //      A MaxScore-style bound can terminate remaining k-passes early once the
