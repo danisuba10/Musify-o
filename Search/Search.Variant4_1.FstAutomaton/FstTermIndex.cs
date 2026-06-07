@@ -35,6 +35,7 @@ using Lucene.Net.Util;
 using Lucene.Net.Util.Automaton;
 using Lucene.Net.Util.Fst;
 using Search.Abstractions;
+using System.Numerics;
 using System.Globalization;
 using System.Text;
 using FstOutput = J2N.Numerics.Int64;
@@ -204,7 +205,9 @@ internal sealed class FstTermIndex
     /// score, capped at <paramref name="topK"/>. Scoring matches the rest of
     /// the search-variant family: <c>1/(1+minDist) + (minDist==0 ? 0.5 : 0)</c>
     /// where minDist is the smallest edit distance over all matched terms
-    /// for the entity.
+    /// for the entity. For multi-token queries, candidates are additionally
+    /// filtered by token coverage (strict first, then relaxed fallback), so
+    /// one common token cannot flood the result set.
     /// </summary>
     public List<(Guid Id, double Score)> Search(
         string normalisedQuery,
@@ -217,22 +220,58 @@ internal sealed class FstTermIndex
         _lock.EnterReadLock();
         try
         {
-            // Sparse minimum-edit-distance map. Replaces the previous
-            // ArrayPool<byte>.Rent(entryCount) which, at multi-million-entity
-            // scale, allocated a fresh 20+ MB array per query (the shared
-            // ArrayPool does not pool arrays larger than ~1 MB) and was the
-            // dominant cost under concurrent load. Output is sparse by design
-            // — the FST + automaton already prunes to the matched terms — so
-            // a dictionary keyed only on hit slots fits the access pattern.
-            var minDist = new Dictionary<int, byte>(capacity: 256);
-
-            // Single-token vs multi-token query.
-            foreach (var token in TokeniseQuery(normalisedQuery))
+            var queryTokens = new List<string>(4);
+            var uniqueTokens = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var tok in TokeniseQuery(normalisedQuery))
             {
-                int kMax = ChooseK(token.Length);
-                CollectMatches(token, kMax, minDist, topK);
+                if (uniqueTokens.Add(tok))
+                    queryTokens.Add(tok);
             }
+            if (queryTokens.Count == 0) return new List<(Guid, double)>();
+
+            bool multiToken = queryTokens.Count > 1;
+            bool useCoverage = multiToken && queryTokens.Count <= 64;
+
+            // Sparse minimum-edit-distance map. Output is sparse by design
+            // (FST + automaton intersection already prunes heavily).
+            var minDist = new Dictionary<int, byte>(capacity: 256);
+            Dictionary<int, ulong>? tokenMaskByIdx = useCoverage
+                ? new Dictionary<int, ulong>(capacity: 256)
+                : null;
+
+            for (int tokenIdx = 0; tokenIdx < queryTokens.Count; tokenIdx++)
+            {
+                string token = queryTokens[tokenIdx];
+                int kMax = ChooseK(token.Length, multiToken);
+                ulong tokenMask = useCoverage ? (1UL << tokenIdx) : 0UL;
+                CollectMatches(token, kMax, minDist, tokenMaskByIdx, tokenMask, useCoverage);
+            }
+
             if (minDist.Count == 0) return new List<(Guid, double)>();
+
+            int requiredTokenMatches = useCoverage ? ChooseRequiredTokenMatches(queryTokens.Count) : 1;
+            int requiredThisPass = requiredTokenMatches;
+
+            bool relaxedCoverage = false;
+            if (useCoverage && tokenMaskByIdx is not null && requiredTokenMatches > 1)
+            {
+                bool hasStrict = false;
+                foreach (var kv in minDist)
+                {
+                    if (!tokenMaskByIdx.TryGetValue(kv.Key, out ulong mask)) continue;
+                    if (BitOperations.PopCount(mask) >= requiredTokenMatches)
+                    {
+                        hasStrict = true;
+                        break;
+                    }
+                }
+
+                if (!hasStrict)
+                {
+                    requiredThisPass = 1;
+                    relaxedCoverage = true;
+                }
+            }
 
             // Score touched entities; bounded min-heap of size topK.
             var heap = new PriorityQueue<int, double>(topK);
@@ -244,7 +283,38 @@ internal sealed class FstTermIndex
                 var ent = _entries[idx];
                 if (filter != SearchEntityType.All && ent.EntityType != filter) continue;
 
+                int matchedTokenCount = 1;
+                if (useCoverage && tokenMaskByIdx is not null)
+                {
+                    tokenMaskByIdx.TryGetValue(idx, out ulong mask);
+                    matchedTokenCount = BitOperations.PopCount(mask);
+                    if (matchedTokenCount < requiredThisPass) continue;
+
+                    // If strict coverage failed and we relaxed to 1-token
+                    // admission, recover precision by rescuing candidates that
+                    // can approximately match missing tokens in-name.
+                    if (relaxedCoverage && requiredTokenMatches > 1)
+                    {
+                        for (int tokenIdx = 0; tokenIdx < queryTokens.Count; tokenIdx++)
+                        {
+                            ulong bit = 1UL << tokenIdx;
+                            if ((mask & bit) != 0) continue;
+
+                            string token = queryTokens[tokenIdx];
+                            int tokenK = ChooseK(token.Length, multiToken);
+                            if (NameContainsApproxToken(_nameLowers[idx], token, tokenK))
+                                mask |= bit;
+                        }
+
+                        matchedTokenCount = BitOperations.PopCount(mask);
+                        if (matchedTokenCount < requiredTokenMatches) continue;
+                    }
+                }
+
                 double score = 1.0 / (1.0 + d) + (d == 0 ? 0.5 : 0);
+                if (useCoverage && queryTokens.Count > 1)
+                    score += 0.2 * (matchedTokenCount - 1);
+
                 if (heap.Count < topK) heap.Enqueue(idx, score);
                 else heap.EnqueueDequeue(idx, score);
             }
@@ -272,16 +342,15 @@ internal sealed class FstTermIndex
 
     /// <summary>
     /// Walks edit-distance levels 0..kMax, intersecting the FST with a
-    /// Levenshtein automaton at each level. Stops once <paramref name="minDist"/>
-    /// already holds at least <paramref name="topK"/> matches (which, since
-    /// score is monotonically decreasing in k, can no longer be displaced by
-    /// higher-k matches).
+    /// Levenshtein automaton at each level and updating per-entity state.
     /// </summary>
     private void CollectMatches(
         string queryToken,
         int kMax,
         Dictionary<int, byte> minDist,
-        int topK)
+        Dictionary<int, ulong>? tokenMaskByIdx,
+        ulong tokenMask,
+        bool useCoverage)
     {
         if (_fst is null) return;
 
@@ -290,10 +359,9 @@ internal sealed class FstTermIndex
         if (exactTermId.HasValue)
         {
             var bm = _postings[(int)exactTermId.Value];
-            UpdateMinDist(bm, distance: 0, minDist);
+            UpdateCandidateState(bm, distance: 0, minDist, tokenMaskByIdx, tokenMask);
         }
         if (kMax == 0) return;
-        if (minDist.Count >= topK) return;
 
         var la = new LevenshteinAutomata(queryToken, withTranspositions: true);
         for (int k = 1; k <= kMax; k++)
@@ -303,21 +371,24 @@ internal sealed class FstTermIndex
             var ra = new CharacterRunAutomaton(auto);
 
             var matchedIds = new List<int>(64);
-            IntersectFstAutomaton(ra, matchedIds);
+            int expansionCap = useCoverage
+                ? ChooseExpansionCapForCoverage(queryToken.Length, k)
+                : MAX_EXPANSIONS_PER_PASS;
+            IntersectFstAutomaton(ra, matchedIds, expansionCap);
             if (matchedIds.Count == 0) continue;
 
             byte d = (byte)k;
             foreach (int termId in matchedIds)
-                UpdateMinDist(_postings[termId], d, minDist);
-
-            if (minDist.Count >= topK) return;
+                UpdateCandidateState(_postings[termId], d, minDist, tokenMaskByIdx, tokenMask);
         }
     }
 
-    private static void UpdateMinDist(
+    private static void UpdateCandidateState(
         RoaringBitmap posting,
         byte distance,
-        Dictionary<int, byte> minDist)
+        Dictionary<int, byte> minDist,
+        Dictionary<int, ulong>? tokenMaskByIdx,
+        ulong tokenMask)
     {
         foreach (int idx in posting)
         {
@@ -329,6 +400,12 @@ internal sealed class FstTermIndex
             {
                 minDist[idx] = distance;
             }
+
+            if (tokenMaskByIdx is not null)
+            {
+                tokenMaskByIdx.TryGetValue(idx, out ulong currentMask);
+                tokenMaskByIdx[idx] = currentMask | tokenMask;
+            }
         }
     }
 
@@ -338,14 +415,21 @@ internal sealed class FstTermIndex
     // the RunAutomaton's current state. Emits the termId encoded as the sum
     // of arc outputs along the path (PositiveInt32Outputs.Add is integer add).
 
-    private void IntersectFstAutomaton(CharacterRunAutomaton ra, List<int> matchedIds)
+    private static int ChooseExpansionCapForCoverage(int tokenLength, int distance)
+    {
+        if (tokenLength <= 3 && distance >= 1) return 20_000;
+        if (tokenLength <= 4 && distance >= 2) return 4_000;
+        return MAX_EXPANSIONS_PER_PASS;
+    }
+
+    private void IntersectFstAutomaton(CharacterRunAutomaton ra, List<int> matchedIds, int maxExpansions = MAX_EXPANSIONS_PER_PASS)
     {
         if (_fst is null) return;
         var br      = _fst.GetBytesReader();
         var outputs = PositiveInt32Outputs.Singleton;
         var rootArc = _fst.GetFirstArc(new FST.Arc<FstOutput>());
 
-        WalkArc(rootArc, ra.InitialState, outputs.NoOutput, ra, br, outputs, matchedIds);
+        WalkArc(rootArc, ra.InitialState, outputs.NoOutput, ra, br, outputs, matchedIds, maxExpansions);
     }
 
     private void WalkArc(
@@ -355,14 +439,15 @@ internal sealed class FstTermIndex
         CharacterRunAutomaton ra,
         FST.BytesReader br,
         PositiveInt32Outputs outputs,
-        List<int> matchedIds)
+        List<int> matchedIds,
+        int maxExpansions)
     {
         if (_fst is null) return;
         // Lucene-style maxExpansions cap: stop the DFS once we've accumulated
         // enough candidate terms. Subsequent matches at this k would only
         // displace already-collected matches at the top-K stage in pathological
         // proportion to wall-clock cost.
-        if (matchedIds.Count >= MAX_EXPANSIONS_PER_PASS) return;
+        if (matchedIds.Count >= maxExpansions) return;
 
         if (!FST<FstOutput>.TargetHasArcs(followArc))
         {
@@ -378,7 +463,7 @@ internal sealed class FstTermIndex
         _fst.ReadFirstTargetArc(followArc, arc, br);
         while (true)
         {
-            if (matchedIds.Count >= MAX_EXPANSIONS_PER_PASS) return;
+            if (matchedIds.Count >= maxExpansions) return;
 
             int label = arc.Label;
             if (label != FST.END_LABEL)
@@ -388,7 +473,7 @@ internal sealed class FstTermIndex
                 {
                     var nextOut = outputs.Add(outputAccum, arc.Output);
                     var snap = new FST.Arc<FstOutput>().CopyFrom(arc);
-                    WalkArc(snap, nextState, nextOut, ra, br, outputs, matchedIds);
+                    WalkArc(snap, nextState, nextOut, ra, br, outputs, matchedIds, maxExpansions);
                 }
             }
             if (arc.IsLast) break;
@@ -417,12 +502,60 @@ internal sealed class FstTermIndex
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private static int ChooseK(int len) => len switch
+    private static int ChooseK(int len, bool multiToken)
     {
-        <= 3 => 0,
-        <= 6 => 1,
-        _    => 2,
-    };
+        if (!multiToken)
+        {
+            return len switch
+            {
+                <= 3 => 0,
+                <= 6 => 1,
+                _    => 2,
+            };
+        }
+
+        return len switch
+        {
+            <= 2 => 0,
+            <= 3 => 1,
+            <= 6 => 1,
+            _    => 2,
+        };
+    }
+
+    private static int ChooseRequiredTokenMatches(int tokenCount)
+    {
+        if (tokenCount <= 1) return 1;
+        if (tokenCount == 2) return 2;
+
+        int sixtyPercent = (int)Math.Ceiling(tokenCount * 0.6);
+        return Math.Min(tokenCount, Math.Max(2, sixtyPercent));
+    }
+
+    private static bool NameContainsApproxToken(string nameLower, string token, int kMax)
+    {
+        foreach (var nameToken in nameLower.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (nameToken.Equals(token, StringComparison.Ordinal))
+                return true;
+
+            if (kMax >= 1 && token.Length <= 3 && IsSubsequence(token, nameToken))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsSubsequence(string pattern, string text)
+    {
+        if (pattern.Length == 0) return true;
+        if (text.Length == 0 || pattern.Length > text.Length) return false;
+
+        int p = 0;
+        for (int i = 0; i < text.Length && p < pattern.Length; i++)
+            if (text[i] == pattern[p]) p++;
+        return p == pattern.Length;
+    }
 
     private static IEnumerable<string> TokeniseQuery(string normalised)
     {
