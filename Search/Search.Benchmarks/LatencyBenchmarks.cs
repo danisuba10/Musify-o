@@ -24,7 +24,7 @@ public class LatencyBenchmarks
     /// Set by Program.cs before BenchmarkRunner.Run so OOM build failures
     /// are written to the shared results CSV as SKIPPED_OOM sentinel rows.
     /// </summary>
-    public static ResultWriter? OomWriter { get; set; }
+    internal static ResultWriter? OomWriter { get; set; }
 
     [Params(10_000, 100_000, 1_000_000, 10_000_000)]
     public long EntityCount { get; set; }
