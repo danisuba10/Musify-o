@@ -48,44 +48,9 @@ internal sealed class DamerauBasicSearchEngine : ISearchEngine
         var normalised = (query.Term ?? string.Empty).Trim().ToLowerInvariant();
         var cacheKey   = $"{normalised}:{query.EntityFilter}";
 
-        if (!_cache.TryGetValue(cacheKey, out List<Guid>? snapshot))
+        if (!_cache.TryGetValue(cacheKey, out List<(Guid Id, double Score)>? snapshot))
         {
-            // Phase 1+2: adaptive trigram filter, length prefilter, top-K min-heap.
-            // See Variant 2.1 for full rationale.
-            var candidates = _index.GetFilteredCandidates(normalised, query.EntityFilter);
-            int qLen = normalised.Length;
-            var heap = new PriorityQueue<Guid, double>(MAX_SCORED_RESULTS);
-
-            foreach (var (id, nameLower) in candidates)
-            {
-                if (Math.Abs(nameLower.Length - qLen) > MAX_EDIT_DISTANCE) continue;
-
-                int dist = DamerauCalculator.Compute(
-                    normalised.AsSpan(), nameLower.AsSpan());
-
-                if (dist > MAX_EDIT_DISTANCE) continue;
-
-                double score = 1.0 / (1.0 + dist);
-                if (dist == 0) score += EXACT_BONUS;
-
-                if (heap.Count < MAX_SCORED_RESULTS) heap.Enqueue(id, score);
-                else                                  heap.EnqueueDequeue(id, score);
-            }
-
-            // Deterministic tie-break: see Variant 2.1 for rationale.
-            var ordered = new (Guid Id, double Score)[heap.Count];
-            for (int i = ordered.Length - 1; i >= 0; i--)
-            {
-                heap.TryDequeue(out var oid, out var osc);
-                ordered[i] = (oid, osc);
-            }
-            Array.Sort(ordered, (a, b) =>
-            {
-                int c = b.Score.CompareTo(a.Score);
-                return c != 0 ? c : b.Id.CompareTo(a.Id);
-            });
-            snapshot = new List<Guid>(ordered.Length);
-            foreach (var item in ordered) snapshot.Add(item.Id);
+            snapshot = CalculateRankedSnapshot(normalised, query.EntityFilter);
 
             _cache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
             {
@@ -95,14 +60,9 @@ internal sealed class DamerauBasicSearchEngine : ISearchEngine
         }
 
         int totalScoredCount = snapshot!.Count;
-        var pageIds = snapshot
-            .Skip(query.Skip)
-            .Take(query.PageSize)
-            .ToList();
-
-        var scoreMap = pageIds
-            .Select((id, i) => (id, score: 1.0 / (1.0 + i)))
-            .ToDictionary(x => x.id, x => x.score);
+        var page = snapshot.Skip(query.Skip).Take(query.PageSize).ToList();
+        var pageIds = page.Select(x => x.Id).ToList();
+        var scoreMap = page.ToDictionary(x => x.Id, x => x.Score);
 
         var hits = await FetchHitsFromDb(pageIds, scoreMap, ct);
 
@@ -117,6 +77,48 @@ internal sealed class DamerauBasicSearchEngine : ISearchEngine
             ElapsedMs           = sw.Elapsed.TotalMilliseconds,
             CandidatesEvaluated = totalScoredCount
         };
+    }
+
+    private List<(Guid Id, double Score)> CalculateRankedSnapshot(string normalised, SearchEntityType entityFilter)    {
+         // Phase 1+2: adaptive trigram filter, length prefilter, top-K min-heap.
+        // See Variant 2.1 for full rationale.
+        var candidates = _index.GetFilteredCandidates(normalised, entityFilter);
+        int qLen = normalised.Length;
+        var heap = new PriorityQueue<Guid, double>(MAX_SCORED_RESULTS);
+
+        foreach (var (id, nameLower) in candidates)
+        {
+            if (Math.Abs(nameLower.Length - qLen) > MAX_EDIT_DISTANCE) continue;
+
+            int dist = DamerauCalculator.Compute(
+                normalised.AsSpan(), nameLower.AsSpan());
+
+            if (dist > MAX_EDIT_DISTANCE) continue;
+
+            double score = 1.0 / (1.0 + dist);
+            if (dist == 0) score += EXACT_BONUS;
+
+            if (heap.Count < MAX_SCORED_RESULTS) heap.Enqueue(id, score);
+            else                                  heap.EnqueueDequeue(id, score);
+        }
+
+        // Deterministic tie-break: see Variant 2.1 for rationale.
+        var ordered = new (Guid Id, double Score)[heap.Count];
+        for (int i = ordered.Length - 1; i >= 0; i--)
+        {
+            heap.TryDequeue(out var oid, out var osc);
+            ordered[i] = (oid, osc);
+        }
+        Array.Sort(ordered, (a, b) =>
+        {
+            int c = b.Score.CompareTo(a.Score);
+            return c != 0 ? c : b.Id.CompareTo(a.Id);
+        });
+
+        var snapshot = new List<(Guid Id, double Score)>(ordered.Length);
+        foreach (var item in ordered) snapshot.Add(item);
+
+        return snapshot;
     }
 
     private Dictionary<Guid, int> GetCandidates(string queryTerm, SearchEntityType filter)

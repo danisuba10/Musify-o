@@ -161,7 +161,7 @@ internal sealed class TrigramIndex
             {
                 <= 4 => 1,
                 <= 6 => 2,
-                <= 9 => Math.Max(2, tc - 6),
+                <= 9 => Math.Max(2, tc - 4),
                 _    => Math.Max(2, tc / 3)
             };
 

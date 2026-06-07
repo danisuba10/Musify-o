@@ -53,53 +53,9 @@ internal sealed class LevenshteinBasicSearchEngine : ISearchEngine
         // ── Snapshot cache lookup ──────────────────────────────────────────
         var cacheKey = $"{normalised}:{query.EntityFilter}";
 
-        if (!_cache.TryGetValue(cacheKey, out List<Guid>? snapshot))
+        if (!_cache.TryGetValue(cacheKey, out List<(Guid Id, double Score)>? snapshot))
         {
-            // ── Phase 1: Adaptive trigram-overlap candidate filter ──────────
-            // Single read-lock acquisition; returns (Guid, pre-lowered name) tuples
-            // already filtered by entity type. Replaces the previous MIN_TRIGRAM_MATCH=1
-            // full-union path which exploded to O(corpus) candidates per request.
-            var candidates = _index.GetFilteredCandidates(normalised, query.EntityFilter);
-
-            // ── Phase 2: Length-prefilter + Levenshtein scoring + top-K heap ──
-            int qLen = normalised.Length;
-            var heap = new PriorityQueue<Guid, double>(MAX_SCORED_RESULTS);
-
-            foreach (var (id, nameLower) in candidates)
-            {
-                // |len(q) − len(n)| > MAX_EDIT_DISTANCE ⇒ d > MAX_EDIT_DISTANCE.
-                if (Math.Abs(nameLower.Length - qLen) > MAX_EDIT_DISTANCE) continue;
-
-                int dist = LevenshteinCalculator.Compute(
-                    normalised.AsSpan(), nameLower.AsSpan());
-
-                if (dist > MAX_EDIT_DISTANCE) continue;
-
-                double score = 1.0 / (1.0 + dist);
-                if (dist == 0) score += EXACT_BONUS;
-
-                if (heap.Count < MAX_SCORED_RESULTS) heap.Enqueue(id, score);
-                else                                  heap.EnqueueDequeue(id, score);
-            }
-
-            // Drain heap into descending-score list with deterministic tie-break.
-            // PriorityQueue is not a stable heap; the previous OrderByDescending
-            // got stable ordering for free. Tie-break by Guid descending matches
-            // the order the previous implementation happened to surface on tied
-            // exact-match scores.
-            var ordered = new (Guid Id, double Score)[heap.Count];
-            for (int i = ordered.Length - 1; i >= 0; i--)
-            {
-                heap.TryDequeue(out var oid, out var osc);
-                ordered[i] = (oid, osc);
-            }
-            Array.Sort(ordered, (a, b) =>
-            {
-                int c = b.Score.CompareTo(a.Score);
-                return c != 0 ? c : b.Id.CompareTo(a.Id);
-            });
-            snapshot = new List<Guid>(ordered.Length);
-            foreach (var item in ordered) snapshot.Add(item.Id);
+            snapshot = CalculateRankedSnapshot(normalised, query.EntityFilter);
 
             _cache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
             {
@@ -110,15 +66,9 @@ internal sealed class LevenshteinBasicSearchEngine : ISearchEngine
 
         // ── Phase 3: Slice the snapshot for this page ──────────────────────
         int totalScoredCount = snapshot!.Count;
-        var pageIds = snapshot
-            .Skip(query.Skip)
-            .Take(query.PageSize)
-            .ToList();
-
-        // ── Phase 4: DB fetch for rich data ────────────────────────────────
-        var scoreMap = pageIds
-            .Select((id, i) => (id, score: 1.0 / (1.0 + i)))
-            .ToDictionary(x => x.id, x => x.score);
+        var page = snapshot.Skip(query.Skip).Take(query.PageSize).ToList();
+        var pageIds = page.Select(x => x.Id).ToList();
+        var scoreMap = page.ToDictionary(x => x.Id, x => x.Score);
 
         var hits = await FetchHitsFromDb(pageIds, scoreMap, ct);
 
@@ -133,6 +83,58 @@ internal sealed class LevenshteinBasicSearchEngine : ISearchEngine
             ElapsedMs           = sw.Elapsed.TotalMilliseconds,
             CandidatesEvaluated = totalScoredCount
         };
+    }
+
+    private List<(Guid Id, double Score)> CalculateRankedSnapshot(string normalised, SearchEntityType entityFilter)
+    {
+        // ── Phase 1: Adaptive trigram-overlap candidate filter ──────────
+        // Single read-lock acquisition; returns (Guid, pre-lowered name) tuples
+        // already filtered by entity type. Replaces the previous MIN_TRIGRAM_MATCH=1
+        // full-union path which exploded to O(corpus) candidates per request.
+        var candidates = _index.GetFilteredCandidates(normalised, entityFilter);
+
+        // ── Phase 2: Length-prefilter + Levenshtein scoring + top-K heap ──
+        int qLen = normalised.Length;
+        var heap = new PriorityQueue<Guid, double>(MAX_SCORED_RESULTS);
+
+        foreach (var (id, nameLower) in candidates)
+        {
+            // |len(q) − len(n)| > MAX_EDIT_DISTANCE ⇒ d > MAX_EDIT_DISTANCE.
+            if (Math.Abs(nameLower.Length - qLen) > MAX_EDIT_DISTANCE) continue;
+
+            int dist = LevenshteinCalculator.Compute(
+                normalised.AsSpan(), nameLower.AsSpan());
+
+            if (dist > MAX_EDIT_DISTANCE) continue;
+
+            double score = 1.0 / (1.0 + dist);
+            if (dist == 0) score += EXACT_BONUS;
+
+            if (heap.Count < MAX_SCORED_RESULTS) heap.Enqueue(id, score);
+            else                                  heap.EnqueueDequeue(id, score);
+        }
+
+        // Drain heap into descending-score list with deterministic tie-break.
+        // PriorityQueue is not a stable heap; the previous OrderByDescending
+        // got stable ordering for free. Tie-break by Guid descending matches
+        // the order the previous implementation happened to surface on tied
+        // exact-match scores.
+        var ordered = new (Guid Id, double Score)[heap.Count];
+        for (int i = ordered.Length - 1; i >= 0; i--)
+        {
+            heap.TryDequeue(out var oid, out var osc);
+            ordered[i] = (oid, osc);
+        }
+        Array.Sort(ordered, (a, b) =>
+        {
+            int c = b.Score.CompareTo(a.Score);
+            return c != 0 ? c : b.Id.CompareTo(a.Id);
+        });
+
+        var snapshot = new List<(Guid Id, double Score)>(ordered.Length);
+        foreach (var item in ordered) snapshot.Add(item);
+        
+        return snapshot;
     }
 
     private Dictionary<Guid, int> GetCandidates(string queryTerm, SearchEntityType filter)

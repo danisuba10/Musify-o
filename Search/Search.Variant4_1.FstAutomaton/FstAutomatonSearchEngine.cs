@@ -46,11 +46,9 @@ internal sealed class FstAutomatonSearchEngine : ISearchEngine
         var normalised = (query.Term ?? string.Empty).Trim().ToLowerInvariant();
         var cacheKey   = $"{normalised}:{query.EntityFilter}";
 
-        if (!_cache.TryGetValue(cacheKey, out List<Guid>? snapshot))
+        if (!_cache.TryGetValue(cacheKey, out List<(Guid Id, double Score)>? snapshot))
         {
-            var scored = _index.Search(normalised, query.EntityFilter, MAX_SCORED_RESULTS);
-            snapshot = new List<Guid>(scored.Count);
-            foreach (var s in scored) snapshot.Add(s.Id);
+            snapshot = _index.Search(normalised, query.EntityFilter, MAX_SCORED_RESULTS);
 
             _cache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
             {
@@ -60,10 +58,10 @@ internal sealed class FstAutomatonSearchEngine : ISearchEngine
         }
 
         int total = snapshot!.Count;
-        var pageIds = snapshot.Skip(query.Skip).Take(query.PageSize).ToList();
-        var scoreMap = pageIds
-            .Select((id, i) => (id, score: 1.0 / (1.0 + i)))
-            .ToDictionary(x => x.id, x => x.score);
+        var page = snapshot.Skip(query.Skip).Take(query.PageSize).ToList();
+
+        var pageIds = page.Select(x => x.Id).ToList();
+        var scoreMap = page.ToDictionary(x => x.Id, x => x.Score);
 
         var hits = await FetchHitsFromDb(pageIds, scoreMap, ct);
 

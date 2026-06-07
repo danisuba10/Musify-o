@@ -6,7 +6,7 @@ namespace Search.Variant4_1.FstAutomaton;
 
 public static class FstAutomatonExtensions
 {
-    public static IServiceCollection AddVariant4_Search(this IServiceCollection services)
+    public static IServiceCollection AddVariant4_1_Search(this IServiceCollection services)
     {
         services.AddMemoryCache(opts => opts.SizeLimit = 10_000);
         services.AddSingleton<FstTermIndex>();
