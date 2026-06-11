@@ -246,13 +246,13 @@ builder.Services.AddAuthorization(options =>
 // SEARCH ENGINE VARIANT — uncomment exactly ONE line
 // ============================================================
 // builder.Services.AddVariant1_Search();
-// builder.Services.AddVariant2_1_Search();
-// builder.Services.AddVariant2_2_Search();
-// builder.Services.AddVariant3_1_Search();
-// builder.Services.AddVariant3_2_Search();
-// builder.Services.AddVariant3_3_Search();           // Variant 3.3: Damerau-Levenshtein + Bitmaps
-// builder.Services.AddVariant4_1_Search();        // Variant 4.1: FST + Levenshtein automaton (dictionary-based scoring)
-builder.Services.AddVariant4_2_Search();        // Variant 4.2: FST + Levenshtein automaton (lazy heap-push)
+//builder.Services.AddVariant2_1_Search();
+//builder.Services.AddVariant2_2_Search();
+//builder.Services.AddVariant3_1_Search();
+//builder.Services.AddVariant3_2_Search();
+//builder.Services.AddVariant3_3_Search(); 
+//builder.Services.AddVariant4_1_Search();
+builder.Services.AddVariant4_2_Search();
 // ============================================================
 
 var app = builder.Build();
