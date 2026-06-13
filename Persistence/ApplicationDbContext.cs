@@ -23,6 +23,7 @@ namespace Persistence
         public DbSet<SongPlayRecord> SongPlayRecords { get; set; }
         public DbSet<AlbumPlayRecord> AlbumPlayRecords { get; set; }
         public DbSet<PlaylistPlayRecord> PlaylistPlayRecords { get; set; }
+        public DbSet<UserLibraryItem> UserLibraryItems { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
@@ -268,6 +269,29 @@ namespace Persistence
             modelBuilder.Entity<PlayRecord>()
                 .Property(p => p.Timestamp)
                 .HasColumnName("Timestamp");
+
+            // ── UserLibraryItem configuration ──────────────────────────────────────────
+            modelBuilder.Entity<UserLibraryItem>()
+                .ToTable("UserLibraryItems");
+
+            modelBuilder.Entity<UserLibraryItem>()
+                .HasIndex(uli => new { uli.UserId, uli.ItemType, uli.ItemId })
+                .IsUnique()
+                .HasDatabaseName("IX_UserLibraryItem_UserId_ItemType_ItemId");
+
+            modelBuilder.Entity<UserLibraryItem>()
+                .HasIndex(uli => new { uli.UserId, uli.SavedAt })
+                .HasDatabaseName("IX_UserLibraryItem_UserId_SavedAt");
+
+            modelBuilder.Entity<UserLibraryItem>()
+                .HasIndex(uli => uli.SavedAt)
+                .HasDatabaseName("IX_UserLibraryItem_SavedAt");
+
+            modelBuilder.Entity<UserLibraryItem>()
+                .HasOne(uli => uli.User)
+                .WithMany(u => u.LibraryItems)
+                .HasForeignKey(uli => uli.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

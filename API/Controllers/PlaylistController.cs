@@ -11,6 +11,7 @@ using Application.Images;
 using Application.Mappers;
 using Application.Playlists;
 using Application.Songs;
+using Application.Users;
 using Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -96,6 +97,21 @@ namespace API.Controllers
             try
             {
                 await Mediator.Send(new AddPlaylist.Command { dto = request, UserId = userId, Id = id, ImagePath = imagePath });
+
+                // Auto-add to user's library
+                try
+                {
+                    await Mediator.Send(new ToggleLibraryItem.Command
+                    {
+                        UserId = userId,
+                        ItemId = id,
+                        ItemType = "Playlist"
+                    });
+                }
+                catch
+                {
+                    // Don't fail the playlist creation if library add fails
+                }
             }
             catch (NotExistingObjectExceptions ex)
             {

@@ -23,5 +23,6 @@ namespace Domain
         public bool IsTwoFactorEnabled { get; set; }
         public string? TwoFactorSecret { get; set; }
         public string? TwoFactorRecoveryCodes { get; set; }
+        public ICollection<UserLibraryItem> LibraryItems { get; set; } = new List<UserLibraryItem>();
     }
 }
