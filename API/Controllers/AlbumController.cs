@@ -16,12 +16,15 @@ using Application.Mappers;
 using Application;
 using Microsoft.AspNetCore.Authorization;
 using Application.ImageAccents;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace API.Controllers
 {
     [Route("album/")]
     public class AlbumController : BaseController
     {
+        private const int TopItemsCacheMinutes = 10;
+
         private async Task<string> AddImage(IFormFile file, string name)
         {
             string imagePath;
@@ -378,6 +381,53 @@ namespace API.Controllers
             catch (Exception e)
             {
                 // Read failed - not logging per configuration
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpGet("top")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> getTopAlbums(
+            [FromServices] IMemoryCache cache,
+            [FromQuery] int count = 25)
+        {
+            string cacheKey = $"top_albums_{count}";
+
+            if (cache.TryGetValue(cacheKey, out List<SearchResult> cachedResults))
+            {
+                return Ok(new SearchResponse
+                {
+                    SearchResults = cachedResults,
+                    LastName = null,
+                    LastCreatedAt = null
+                });
+            }
+
+            try
+            {
+                List<Album> albums = await Mediator.Send(new GetTopAlbums.Query { Count = count });
+                List<SearchResult> results = AlbumMapper.MapToSearchResultList(albums);
+
+                if (results.Count == 0)
+                {
+                    return NotFound("No albums found");
+                }
+
+                var cacheOptions = new MemoryCacheEntryOptions()
+                    .SetSize(1)
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(TopItemsCacheMinutes));
+                cache.Set(cacheKey, results, cacheOptions);
+
+                return Ok(new SearchResponse
+                {
+                    SearchResults = results,
+                    LastName = null,
+                    LastCreatedAt = null
+                });
+            }
+            catch (Exception e)
+            {
                 return BadRequest(e.Message);
             }
         }

@@ -16,12 +16,15 @@ using Microsoft.AspNetCore.Authorization;
 using Application.ImageAccents;
 using Application.Albums;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace API.Controllers
 {
     [Route("artist/")]
     public class ArtistController : BaseController
     {
+        private const int TopItemsCacheMinutes = 10;
+
         private async Task<String> AddImage(IFormFile file, string name)
         {
             string imagePath;
@@ -279,6 +282,53 @@ namespace API.Controllers
             catch (Exception e)
             {
                 // Read failed - not logging per configuration
+                return BadRequest(e.Message);
+            }
+        }
+
+        [HttpGet("top")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> getTopArtists(
+            [FromServices] IMemoryCache cache,
+            [FromQuery] int count = 25)
+        {
+            string cacheKey = $"top_artists_{count}";
+
+            if (cache.TryGetValue(cacheKey, out List<SearchResult> cachedResults))
+            {
+                return Ok(new SearchResponse
+                {
+                    SearchResults = cachedResults,
+                    LastName = null,
+                    LastCreatedAt = null
+                });
+            }
+
+            try
+            {
+                List<Artist> artists = await Mediator.Send(new GetTopArtists.Query { Count = count });
+                List<SearchResult> results = ArtistMapper.MapToSearchResultList(artists);
+
+                if (results.Count == 0)
+                {
+                    return NotFound("No artists found");
+                }
+
+                var cacheOptions = new MemoryCacheEntryOptions()
+                    .SetSize(1)
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(TopItemsCacheMinutes));
+                cache.Set(cacheKey, results, cacheOptions);
+
+                return Ok(new SearchResponse
+                {
+                    SearchResults = results,
+                    LastName = null,
+                    LastCreatedAt = null
+                });
+            }
+            catch (Exception e)
+            {
                 return BadRequest(e.Message);
             }
         }
