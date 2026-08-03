@@ -1,2 +1,2 @@
 Music streaming backend.
-Avaiable at https://meloptica.stream
+Avaiable at https://meloptica.xyz
