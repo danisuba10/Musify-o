@@ -1,5 +1,5 @@
 Music streaming backend.
-Avaiable at https://meloptica.stream
+Avaiable at https://meloptica.xyz
 
 CRUD logs: Controller-level CRUD operations for Song, Album, and Artist are logged to a file `Logs/crud-operations.txt` under the API project root. The filename can be configured using the `Logging:CrudLogFileName` setting in configuration. Note: Read (GET) operations are intentionally NOT logged or notified; logging and notifications apply to Create/Update/Delete operations only. - Console logging: By default, logs are also written to the console for SSH/remote viewing. You can toggle console logging using the `Logging:ConsoleLoggingEnabled` configuration key (true/false). The default is `true`.
 
